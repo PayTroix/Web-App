@@ -24,3 +24,65 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Add this at the bottom of your globals.css */
+.bg-hero {
+  background-image: url("https://res.cloudinary.com/dxswouxj5/image/upload/v1745289047/BG_1_t7znif.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+/* Optional glowing grid effect */
+.bg-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: 
+    repeating-linear-gradient(0deg, rgba(13, 27, 73, 0.1), rgba(0, 183, 255, 0.1) 1px, transparent 1px, transparent 40px),
+    repeating-linear-gradient(90deg, rgba(0, 183, 255, 0.1), rgba(0, 183, 255, 0.1) 1px, transparent 1px, transparent 40px);
+  z-index: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px #00b7ff) drop-shadow(0 0 10px #00b7ff);
+}
+
+.card-lightning {
+  position: relative;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.card-lightning::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #3b82f6,
+    #60a5fa,
+    #2563eb,
+    transparent
+  );
+  background-size: 200% 200%;
+  animation: electricBorder 10s linear infinite;
+  border-radius: inherit;
+  z-index: -1;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+}
+
+@keyframes electricBorder {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

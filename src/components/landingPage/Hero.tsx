@@ -10,29 +10,7 @@ export default function HeroSection() {
           "url('https://res.cloudinary.com/dxswouxj5/image/upload/v1745289047/BG_1_t7znif.png')",
       }}
     >
-      {/* Navbar */}
-      {/* <nav className="flex items-center justify-between px-8 py-4 bg-[#060D13] backdrop-blur-sm mx-32 rounded-md">
-        <div className="flex items-center gap-16">
-          <Image src="/logo.png" alt="Logo" width={120} height={120} />
-          <ul className="flex items-center space-x-6 text-sm">
-            {['Features', 'About', 'Contact'].map((item, index) => (
-              <li
-                key={index}
-                className="relative cursor-pointer text-white group"
-              >
-                <span className="group-hover:text-blue-400 transition-colors duration-300">
-                  {item}
-                </span>
-                <span className="absolute left-0 bottom-0 h-0.5 w-0 bg-blue-400 transition-all duration-700 ease-in-out group-hover:w-full"></span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-          Connect Wallet
-        </button>
-      </nav> */}
+      
    <Header/>
       {/* Hero Content */}
       <div className="flex flex-col items-center justify-center text-center px-4 md:px-20 pt-20">
@@ -52,7 +30,7 @@ export default function HeroSection() {
             Get Started
           </button>
           <button className="border border-white hover:border-blue-500 px-2 py-2 rounded-lg font-semibold">
-            Explore Features
+            Join Waitlist
           </button>
         </div>
 

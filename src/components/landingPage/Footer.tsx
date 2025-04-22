@@ -5,7 +5,7 @@ import Image from 'next/image';
 
 const Footer = () => {
   return (
-    <footer className="bg-black py-12 px-24">
+    <footer className=" py-12 px-24">
       <div className="container mx-auto">
         {/* Top row with logo and email subscription */}
         <div className="flex flex-col md:flex-row justify-between items-start mb-16">

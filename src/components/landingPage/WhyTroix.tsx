@@ -20,13 +20,14 @@ export default function Home() {
       text: "Fully Decentralized Treasury & HR Integration",
     },
     {
-      icon: "Vector_4_zfypg9.png",
+      icon: "Vector_5_pjypwp.png",
       text: "Financial Wellness Tools for Employees",
     },
   ]
 
+
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4 py-20 ">
+    <div className="min-h-screen  text-white flex flex-col items-center justify-center px-4 py-20 ">
       <section className="max-w-5xl mx-auto text-center">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
@@ -60,13 +61,13 @@ export default function Home() {
                 index === 2 ? "md:col-span-2 max-w-lg mx-auto w-full" : ""
               }`}
             >
-              <div className="rounded-lg p-6 flex items-center space-x-4 bg-black/40 hover:bg-black/60 transition-all">
-                <div className="bg-blue-900/50 p-3 rounded-full flex items-center justify-center">
+              <div className="rounded-lg px-6 py-2 flex items-center space-x-4 bg-black/40 hover:bg-black/60 transition-all">
+                <div className=" p-3 rounded-full flex items-center justify-center">
                   <Image
                     src={`https://res.cloudinary.com/dxswouxj5/image/upload/v1745300178/${feature.icon}`}
                     alt="Icon"
-                    width={32}
-                    height={32}
+                    width={42}
+                    height={42}
                   />
                 </div>
                 <span className="text-gray-200">{feature.text}</span>

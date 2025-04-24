@@ -1,10 +1,10 @@
 'use client';
-import React, { useState } from 'react';
-import Image from 'next/image';
+import React from 'react';
 import Link from 'next/link';
 import LiveLineChart from './LiveChart';
 
 // Mock data for recent payments
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const recentPayments = [
   { id: 1, name: 'Jane Doe', amount: '$4,000', date: 'July 15, 2023', status: 'Completed' },
   { id: 2, name: 'John Smith', amount: '$3,800', date: 'July 15, 2023', status: 'Pending' },

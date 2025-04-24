@@ -15,7 +15,7 @@ export default function HeroSection() {
       {/* Hero Content */}
       <div className="flex flex-col items-center justify-center text-center px-4 md:px-20 pt-20">
         <h1 className="text-3xl md:text-5xl font-bold leading-tight max-w-4xl">
-          Payroll Reinvented for <span className="text-blue-500">Web3</span>
+          Payroll Reinvented for <span className=" bg-gradient-to-r from-[#0072E5] to-[#00468C] text-transparent bg-clip-text animate-pulse">Web3</span>
           <br />
           <span>Instant, Secure, and Borderless</span>
         </h1>

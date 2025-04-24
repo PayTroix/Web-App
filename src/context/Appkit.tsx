@@ -22,7 +22,7 @@ const metadata = {
   icons: ['https://avatars.githubusercontent.com/u/179229932']
 }
 
-// Create the modal
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const modal = createAppKit({
   adapters: [wagmiAdapter],
   projectId,

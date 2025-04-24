@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 export const PayrollContent = () => {
   const [activeTab, setActiveTab] = useState('payment');
   const [selectedGroup, setSelectedGroup] = useState('active');
-  const [currency, setCurrency] = useState('USDT');
+  //const [currency, setCurrency] = useState('USDT');
   const [paymentMonth, setPaymentMonth] = useState('');
 
   return (
@@ -112,7 +112,7 @@ export const PayrollContent = () => {
             }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M12 2L2 7l10 5 10-5z" />
               <path d="M2 17l10 5 10-5" />
               <path d="M2 12l10 5 10-5" />
             </svg>
@@ -122,82 +122,80 @@ export const PayrollContent = () => {
 
         {/* Selection Options */}
         <div className="mb-10 flex justify-between">
-         <div>
-         <h3 className="text-gray-400 mb-4">Select Groups For Payment</h3>
-          <div className="flex space-x-6">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="employeeGroup"
-                value="all"
-                checked={selectedGroup === 'all'}
-                onChange={() => setSelectedGroup('all')}
-                className="form-radio h-4 w-4 text-blue-500 hidden"
-              />
-              <span className={`flex items-center justify-center w-5 h-5 rounded-full border ${
-                selectedGroup === 'all' ? 'border-blue-500 bg-blue-500' : 'border-[#0072E5]'
-              }`}>
-                {selectedGroup === 'all' && (
-                  <span className="w-2 h-2 rounded-full bg-white"></span>
-                )}
-              </span>
-              <span className="ml-2 text-white">All Employees</span>
-            </label>
-            
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="employeeGroup"
-                value="active"
-                checked={selectedGroup === 'active'}
-                onChange={() => setSelectedGroup('active')}
-                className="form-radio h-4 w-4 text-blue-500 hidden"
-              />
-              <span className={`flex items-center justify-center w-5 h-5 rounded-full border ${
-                selectedGroup === 'active' ? 'border-blue-500 bg-blue-500' : 'border-gray-500'
-              }`}>
-                {selectedGroup === 'active' && (
-                  <span className="w-2 h-2 rounded-full bg-white"></span>
-                )}
-              </span>
-              <span className="ml-2 text-white">Active</span>
-            </label>
-            
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="employeeGroup"
-                value="onLeave"
-                checked={selectedGroup === 'onLeave'}
-                onChange={() => setSelectedGroup('onLeave')}
-                className="form-radio h-4 w-4 text-blue-500 hidden"
-              />
-              <span className={`flex items-center justify-center w-5 h-5 rounded-full border ${
-                selectedGroup === 'onLeave' ? 'border-blue-500 bg-blue-500' : 'border-[#0072E5]'
-              }`}>
-                {selectedGroup === 'onLeave' && (
-                  <span className="w-2 h-2 rounded-full bg-white"></span>
-                )}
-              </span>
-              <span className="ml-2 text-white">On Leave</span>
-            </label>
-          </div>
-         </div>
-           {/* Total Amount Section */}
-        <div className=" items-center mb-6">
-          <div className="text-gray-400 text-sm">Total amount to be disbursed</div>
-          <div className="flex items-center text-white font-medium">
-            <div className="bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center mr-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+          <div>
+            <h3 className="text-gray-400 mb-4">Select Groups For Payment</h3>
+            <div className="flex space-x-6">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="employeeGroup"
+                  value="all"
+                  checked={selectedGroup === 'all'}
+                  onChange={() => setSelectedGroup('all')}
+                  className="form-radio h-4 w-4 text-blue-500 hidden"
+                />
+                <span className={`flex items-center justify-center w-5 h-5 rounded-full border ${
+                  selectedGroup === 'all' ? 'border-blue-500 bg-blue-500' : 'border-[#0072E5]'
+                }`}>
+                  {selectedGroup === 'all' && (
+                    <span className="w-2 h-2 rounded-full bg-white"></span>
+                  )}
+                </span>
+                <span className="ml-2 text-white">All Employees</span>
+              </label>
+              
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="employeeGroup"
+                  value="active"
+                  checked={selectedGroup === 'active'}
+                  onChange={() => setSelectedGroup('active')}
+                  className="form-radio h-4 w-4 text-blue-500 hidden"
+                />
+                <span className={`flex items-center justify-center w-5 h-5 rounded-full border ${
+                  selectedGroup === 'active' ? 'border-blue-500 bg-blue-500' : 'border-gray-500'
+                }`}>
+                  {selectedGroup === 'active' && (
+                    <span className="w-2 h-2 rounded-full bg-white"></span>
+                  )}
+                </span>
+                <span className="ml-2 text-white">Active</span>
+              </label>
+              
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="employeeGroup"
+                  value="onLeave"
+                  checked={selectedGroup === 'onLeave'}
+                  onChange={() => setSelectedGroup('onLeave')}
+                  className="form-radio h-4 w-4 text-blue-500 hidden"
+                />
+                <span className={`flex items-center justify-center w-5 h-5 rounded-full border ${
+                  selectedGroup === 'onLeave' ? 'border-blue-500 bg-blue-500' : 'border-[#0072E5]'
+                }`}>
+                  {selectedGroup === 'onLeave' && (
+                    <span className="w-2 h-2 rounded-full bg-white"></span>
+                  )}
+                </span>
+                <span className="ml-2 text-white">On Leave</span>
+              </label>
             </div>
-            <span className="text-3xl">$48,324.08</span>
+            {/* Total Amount Section */}
+            <div className="items-center mb-6">
+              <div className="text-gray-400 text-sm">Total amount to be disbursed</div>
+              <div className="flex items-center text-white font-medium">
+                <div className="bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center mr-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <span className="text-3xl">$48,324.08</span>
+              </div>
+            </div>
           </div>
         </div>
-        </div>
-
-       
 
         {/* Currency and Payment Month */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
@@ -235,3 +233,5 @@ export const PayrollContent = () => {
     </div>
   );
 };
+
+export default PayrollContent;

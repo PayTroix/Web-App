@@ -6,6 +6,7 @@ import HeroSection from "@/components/landingPage/Hero"
 import WhyTroix from "@/components/landingPage/WhyTroix"
 
 
+
 export default function Home() {
   return (
 <div className="bg-cover  bg-no-repeat"

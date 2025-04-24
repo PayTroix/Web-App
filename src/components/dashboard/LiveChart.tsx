@@ -18,7 +18,7 @@ const chartData = [
 ];
 
 // Custom tooltip component
-const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-blue-600 text-white text-xs px-2 py-1 rounded text-center">
@@ -32,7 +32,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>)
 const LiveLineChart = () => {
   const [activeDataIndex, setActiveDataIndex] = useState<number | null>(4); // Default to 04/25 as active
 
-  const CustomizedDot = (props: any) => {
+  const CustomizedDot = (props: { cx: number; cy: number; index: number }) => {
     const { cx, cy, index } = props;
     return (
       <circle 
@@ -117,7 +117,7 @@ const LiveLineChart = () => {
             stroke="#3b82f6" 
             strokeWidth={3}
             activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
-            dot={<CustomizedDot />}
+            dot={(props) => <CustomizedDot {...props} />}
             isAnimationActive={true}
           />
         </LineChart>

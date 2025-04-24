@@ -51,6 +51,7 @@ const initialTransactions = [
 ];
 
 export const PayrollContent = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [transactions, setTransactions] = useState(initialTransactions);
   const [activeTab, setActiveTab] = useState('all');
 

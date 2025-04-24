@@ -33,7 +33,7 @@ export default function Home() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-4xl md:text-5xl font-bold text-blue-400 mb-4"
+          className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-[#0072E5] to-[#00468C] text-transparent bg-clip-text"
         >
           Why PayTroix?
         </motion.h1>
@@ -117,7 +117,7 @@ export default function Home() {
 function FeaturePill({ text }: { text: string }) {
   return (
     <div className="bg-black/60 border border-blue-900/50 rounded-full px-5 py-2 flex items-center space-x-2">
-      <div className="bg-blue-500/20 rounded-full p-1 flex items-center justify-center">
+      <div className="bg-blue-500/20 rounded-full p-1 flex items-center justify-center animate-spin">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
           <path d="M20 6L9 17L4 12" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>

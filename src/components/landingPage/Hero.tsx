@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import Header from './Header';
 
 export default function HeroSection() {
@@ -25,9 +26,11 @@ export default function HeroSection() {
           automated tax filing, and detailed reporting.
         </p>
         <div className="mt-8 flex space-x-16">
-          <button className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold">
-            Get Started
-          </button>
+          <Link href="/register">
+            <button className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold">
+              Get Started
+            </button>
+          </Link>
           <button className="border border-white hover:border-blue-500 px-2 py-2 rounded-lg font-semibold">
             Join Waitlist
           </button>

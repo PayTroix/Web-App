@@ -16,7 +16,7 @@ const Header = () => {
       await open();
     } catch (error) {
       console.error('Failed to connect wallet:', error);
-      // Optionally show a toast notification
+      
     } finally {
       setIsConnecting(false);
     }
@@ -27,7 +27,7 @@ const Header = () => {
     : 'Connect Wallet';
 
   return (
-    <nav className="flex items-center justify-between px-8 py-4 bg-[#060D13] backdrop-blur-sm mx-32 rounded-md">
+    <nav className="flex items-center justify-between px-8 py-4 bg-[#060D13] mx-32 rounded-md">
       <div className="flex items-center gap-16">
         <Image src="/logo.png" alt="Logo" width={120} height={120} />
         <ul className="flex items-center space-x-6 text-sm">

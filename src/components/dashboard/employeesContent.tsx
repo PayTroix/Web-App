@@ -62,13 +62,12 @@ export const EmployeesContent = () => {
                 stroke="#3b82f6" 
                 strokeWidth="8" 
                 strokeDasharray="339.3" 
-                strokeDashoffset="84.825" // 25% of the circumference
+                strokeDashoffset="84.825"
                 transform="rotate(-90 60 60)"
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-white text-xl font-bold">75%</span>
-              <p className="text-gray-500 text-xs mt-2">Performance</p>
             </div>
           </div>
           <div className="mt-4 whitespace-nowrap">
@@ -112,14 +111,14 @@ export const EmployeesContent = () => {
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
             </div>
-            <h2 className="text-white text-md ">Employees</h2>
+            <h2 className="text-white text-md ">Recipient</h2>
           </div>
           <button className=" text-white px-4 py-1.5 rounded-lg flex items-center text-sm font-medium">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="blue" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Add Employee
+            Add Recipient
           </button>
         </div>
         <div className="overflow-x-auto">

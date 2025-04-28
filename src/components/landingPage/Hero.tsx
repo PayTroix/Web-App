@@ -1,9 +1,8 @@
 'use client';
-import Link from 'next/link';
 import Header from './Header';
 import { useRouter } from 'next/navigation';
 import { useAppKitAccount } from "@reown/appkit/react";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { web3AuthService } from '../../services/api';
 
@@ -13,7 +12,7 @@ export default function HeroSection() {
     const [isCheckingUser, setIsCheckingUser] = useState(false);
 
     // Function to check user type and redirect accordingly
-    const checkUserAndRedirect = async () => {
+    const checkUserAndRedirect = useCallback(async () => {
       if (!address) return;
       
       setIsCheckingUser(true);
@@ -42,13 +41,13 @@ export default function HeroSection() {
       } finally {
         setIsCheckingUser(false);
       }
-    };
+    }, [address, router]);
 
     useEffect(() => {
       if (isConnected && address) {
         checkUserAndRedirect();
       }
-    }, [isConnected, address]);
+    }, [isConnected, address, checkUserAndRedirect]);
 
     const handleGetStarted = async () => {
       if (!isConnected) {

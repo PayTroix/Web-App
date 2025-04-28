@@ -47,6 +47,11 @@ class PayrollContract {
     return this.contract.createOrganization(name, description);
   }
 
+  // // Add a helper method for waiting on transactions
+  // async waitForTransaction(tx: ContractTransaction): Promise<TransactionReceipt> {
+  //   return tx.wait();
+  // }
+
   async getOrganizationContract(orgOwner: string): Promise<string> {
     return this.contract.getOrganizationContract(orgOwner);
   }

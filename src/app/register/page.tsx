@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import { ethers } from 'ethers';
-import { initPayrollContract } from '@/services/contractInteraction';
 import { profileService, web3AuthService } from '@/services/api';
 import toast from 'react-hot-toast';
+import { displayAddress } from '@/utils';
+import abi from '@/services/abi.json';
 
 function RegisterPage() {
   const router = useRouter();
@@ -61,7 +62,8 @@ const handleSubmit = async (e: React.FormEvent) => {
 
       // Initialize contract
       const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
-      const payrollContract = initPayrollContract(contractAddress, provider, signer);
+      // const payrollContract = initPayrollContract(contractAddress, provider, signer);
+      const payrollContract = new ethers.Contract(contractAddress, abi, signer);
 
       // Start atomic transaction flow
       let backendOrgId: string | null = null;
@@ -69,28 +71,34 @@ const handleSubmit = async (e: React.FormEvent) => {
       try {
         // 4. First create backend record
         const organizationResponse = await profileService.createOrganizationProfile(orgData, token);
+        // @ts-expect-error - ID type mismatch between backend and frontend
         backendOrgId = organizationResponse.id;
 
         // 5. Then create on-chain organization
+        // const tx = await payrollContract.createOrganization(orgData.name, 'Organization description');
+        // const receipt = await payrollContract.waitForTransaction(tx);
+        // if (receipt?.status !== 1) {
+        //   throw new Error('Transaction failed on chain');
+        // }
         const tx = await payrollContract.createOrganization(orgData.name, 'Organization description');
-        const receipt = await tx.wait();
-
-        if (receipt.status !== 1) {
+        const receipt = await payrollContract.waitForTransaction(tx);
+        if (receipt?.status !== 1) {
           throw new Error('Transaction failed on chain');
         }
-
         toast.success('Organization created successfully!');
         router.push('/dashboard');
       } catch (error) {
         // Rollback: Delete backend record if chain transaction failed
         if (backendOrgId) {
+          // @ts-expect-error - ID type mismatch between backend and frontend
           await profileService.deleteOrganizationProfile(backendOrgId, token).catch(console.error);
         }
         throw error;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Registration error:', error);
-      toast.error(error.message || 'Failed to register organization');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to register organization';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -118,7 +126,7 @@ const handleSubmit = async (e: React.FormEvent) => {
         </div>
         <div className="flex items-center text-blue-400">
           <span className="mr-2">✓</span>
-          <span className="text-sm text-gray-400">0xB9.....4aba</span>
+          <span className="text-sm text-gray-400">{displayAddress(address)}</span>
         </div>
       </header>
 
@@ -191,6 +199,8 @@ const handleSubmit = async (e: React.FormEvent) => {
                   className="bg-black border border-gray-700 rounded p-3 text-gray-400 w-full appearance-none focus:outline-none focus:border-blue-500"
                 >
                   <option value="">Select country</option>
+                  <option value="ng">Nigeria</option>
+                  <option value="gh">Ghana</option>
                   <option value="us">United States</option>
                   <option value="ca">Canada</option>
                   <option value="uk">United Kingdom</option>

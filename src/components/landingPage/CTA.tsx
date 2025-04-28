@@ -1,6 +1,6 @@
 // components/CTASection.jsx
 import React, { useState } from 'react';
-import Link from 'next/link';
+// import Link from 'next/link';
 import { waitlistService } from '../../services/api';
 
 const CTASection = () => {

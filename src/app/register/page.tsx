@@ -4,41 +4,94 @@ import React, { useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-
+import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider, type Provider } from '@reown/appkit/react';
+import { ethers } from 'ethers';
+import { initPayrollContract } from '@/services/contractInteraction';
+import { profileService, web3AuthService } from '@/services/api';
+import toast from 'react-hot-toast';
 
 function RegisterPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { address, isConnected } = useAppKitAccount();
+  const { chainId } = useAppKitNetworkCore();
+  const { walletProvider } = useAppKitProvider<Provider>('eip155');
 
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
+  
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     
+    if (!isConnected || !address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    setIsSubmitting(true);
     const formData = new FormData(e.target as HTMLFormElement);
     
-    // Construct organization data
-    const orgData = {
-      name: formData.get('orgName'),
-      email: formData.get('email'),
-      address1: formData.get('address1'),
-      address2: formData.get('address2'),
-      country: formData.get('country'),
-      state: formData.get('state'),
-      website: formData.get('website'),
-    };
-
     try {
-      // Here you would typically make an API call to register the organization
-      console.log('Submitting organization data:', orgData);
+      // 1. Verify address and get nonce
+      const { nonce } = await web3AuthService.getNonce(address);
+      const isVerified = await web3AuthService.verifyAddress(address);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Simulating successful registration
-      router.push('/dashboard');
-    } catch (error) {
-      console.error('Error registering organization:', error);
+      if (!isVerified.exists) {
+        throw new Error('Address not verified');
+      }
+
+      // 2. Sign message for authentication
+      const message = `I'm signing my one-time nonce: ${nonce}`;
+      const provider = new ethers.BrowserProvider(walletProvider, chainId);
+      const signer = await provider.getSigner();
+      const signature = await signer.signMessage(message);
+
+      // 3. Authenticate with backend
+      const authData = {
+        "address": address,
+        "signature": signature,
+      };
+      const authResponse = await web3AuthService.login(authData);
+      const token = authResponse.access;
+
+      // Prepare organization data
+      const orgData = {
+        name: formData.get('orgName') as string,
+        email: formData.get('email') as string,
+        organization_address: `${formData.get('address1')}, ${formData.get('address2')}, ${formData.get('state')}, ${formData.get('country')}`
+      };
+
+      // Initialize contract
+      const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
+      const payrollContract = initPayrollContract(contractAddress, provider, signer);
+
+      // Start atomic transaction flow
+      let backendOrgId: string | null = null;
+
+      try {
+        // 4. First create backend record
+        const organizationResponse = await profileService.createOrganizationProfile(orgData, token);
+        backendOrgId = organizationResponse.id;
+
+        // 5. Then create on-chain organization
+        const tx = await payrollContract.createOrganization(orgData.name, 'Organization description');
+        const receipt = await tx.wait();
+
+        if (receipt.status !== 1) {
+          throw new Error('Transaction failed on chain');
+        }
+
+        toast.success('Organization created successfully!');
+        router.push('/dashboard');
+      } catch (error) {
+        // Rollback: Delete backend record if chain transaction failed
+        if (backendOrgId) {
+          await profileService.deleteOrganizationProfile(backendOrgId, token).catch(console.error);
+        }
+        throw error;
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      toast.error(error.message || 'Failed to register organization');
+    } finally {
       setIsSubmitting(false);
     }
   };

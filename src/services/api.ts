@@ -1,3 +1,31 @@
+// import axios from 'axios';
+
+// // Base API URL for our backend service
+// const baseURL = 'https://backend-lk8r.onrender.com';
+
+// Create axios instance with base configuration
+// const apiClient = axios.create({
+//   baseURL,
+//   headers: {
+//     'Content-Type': 'application/json',
+//   },
+// });
+
+// // Waitlist API service
+// export const waitlistService = {
+  
+//   joinWaitlist: async (email: string) => {
+//     try {
+//       const response = await apiClient.post('/api/v1/waitlist/waitlist/', {
+//         email,
+//       });
+//       return response.data;
+//     } catch (error) {
+//       console.error('Error joining waitlist:', error);
+//       throw error;
+//     }
+//   },
+// };
 import axios from 'axios';
 
 // Base API URL for our backend service
@@ -11,20 +39,273 @@ const apiClient = axios.create({
   },
 });
 
+// Helper function to set JWT token in headers
+const setAuthHeader = (token: string) => {
+  apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+};
+
+// Profile API services
+export const profileService = {
+  // Organization Profile Endpoints
+  listOrganizationProfiles: async (token: string) => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get('/api/v1/profile/organization-profile/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching organization profiles:', error);
+      throw error;
+    }
+  },
+
+  createOrganizationProfile: async (data: any, token: string) => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.post('/api/v1/profile/organization-profile/', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating organization profile:', error);
+      throw error;
+    }
+  },
+
+  getOrganizationProfile: async (id: number, token: string) => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get(`/api/v1/profile/organization-profile/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching organization profile:', error);
+      throw error;
+    }
+  },
+
+  updateOrganizationProfile: async (id: number, data: any, token: string) => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.put(`/api/v1/profile/organization-profile/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating organization profile:', error);
+      throw error;
+    }
+  },
+
+  partialUpdateOrganizationProfile: async (id: number, data: any, token: string) => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.patch(`/api/v1/profile/organization-profile/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error partially updating organization profile:', error);
+      throw error;
+    }
+  },
+
+  deleteOrganizationProfile: async (id: any, token: string) => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.delete(`/api/v1/profile/organization-profile/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting organization profile:', error);
+      throw error;
+    }
+  },
+
+  // Recipient Profile Endpoints
+  listRecipientProfiles: async (token: string) => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get('/api/v1/profile/recipient-profile/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching recipient profiles:', error);
+      throw error;
+    }
+  },
+
+  createRecipientProfile: async (data: any, token: string) => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.post('/api/v1/profile/recipient-profile/', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating recipient profile:', error);
+      throw error;
+    }
+  },
+
+  getRecipientProfile: async (id: number, token: string) => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get(`/api/v1/profile/recipient-profile/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching recipient profile:', error);
+      throw error;
+    }
+  },
+
+  updateRecipientProfile: async (id: number, data: any, token: string) => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.put(`/api/v1/profile/recipient-profile/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating recipient profile:', error);
+      throw error;
+    }
+  },
+
+  partialUpdateRecipientProfile: async (id: number, data: any, token: string) => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.patch(`/api/v1/profile/recipient-profile/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error partially updating recipient profile:', error);
+      throw error;
+    }
+  },
+
+  deleteRecipientProfile: async (id: number, token: string) => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.delete(`/api/v1/profile/recipient-profile/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting recipient profile:', error);
+      throw error;
+    }
+  },
+
+  batchCreateRecipientProfiles: async (id: number, data: any, token: string) => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.post(`/api/v1/profile/recipient-profile/${id}/batch_create/`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error batch creating recipient profiles:', error);
+      throw error;
+    }
+  },
+};
+
 // Waitlist API service
 export const waitlistService = {
-  
-  joinWaitlist: async (email: string) => {
+  listWaitlistEntries: async (token?: string) => {
     try {
-      const response = await apiClient.post('/api/v1/waitlist/waitlist/', {
-        email,
-      });
+      if (token) setAuthHeader(token);
+      const response = await apiClient.get('/api/v1/waitlist/waitlist/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching waitlist entries:', error);
+      throw error;
+    }
+  },
+
+  joinWaitlist: async (email: string, token?: string) => {
+    try {
+      if (token) setAuthHeader(token);
+      const response = await apiClient.post('/api/v1/waitlist/waitlist/', { email });
       return response.data;
     } catch (error) {
       console.error('Error joining waitlist:', error);
       throw error;
     }
   },
+
+  getWaitlistEntry: async (id: number, token?: string) => {
+    try {
+      if (token) setAuthHeader(token);
+      const response = await apiClient.get(`/api/v1/waitlist/waitlist/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching waitlist entry:', error);
+      throw error;
+    }
+  },
+
+  updateWaitlistEntry: async (id: number, data: any, token?: string) => {
+    try {
+      if (token) setAuthHeader(token);
+      const response = await apiClient.put(`/api/v1/waitlist/waitlist/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating waitlist entry:', error);
+      throw error;
+    }
+  },
+
+  partialUpdateWaitlistEntry: async (id: number, data: any, token?: string) => {
+    try {
+      if (token) setAuthHeader(token);
+      const response = await apiClient.patch(`/api/v1/waitlist/waitlist/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error partially updating waitlist entry:', error);
+      throw error;
+    }
+  },
+
+  deleteWaitlistEntry: async (id: number, token?: string) => {
+    try {
+      if (token) setAuthHeader(token);
+      const response = await apiClient.delete(`/api/v1/waitlist/waitlist/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting waitlist entry:', error);
+      throw error;
+    }
+  },
 };
 
-export default apiClient; 
+// Web3Auth API service
+export const web3AuthService = {
+  login: async (data: any, token?: string) => {
+    try {
+      if (token) setAuthHeader(token);
+      const response = await apiClient.post('/api/v1/web3auth/login/', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error with Web3Auth login:', error);
+      throw error;
+    }
+  },
+
+  getNonce: async (address: string, token?: string) => {
+    try {
+      if (token) setAuthHeader(token);
+      const response = await apiClient.get(`/api/v1/web3auth/nonce/${address}/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting nonce:', error);
+      throw error;
+    }
+  },
+
+  verifyAddress: async (address: string, token?: string) => {
+    try {
+      if (token) setAuthHeader(token);
+      const response = await apiClient.get(`/api/v1/web3auth/verify-address/${address}/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error verifying address:', error);
+      throw error;
+    }
+  },
+
+  getUser: async (token: string) => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get('/api/v1/web3auth/user/');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting user:', error);
+      throw error;
+    }
+  },
+};
+
+export default apiClient;

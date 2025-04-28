@@ -1,7 +1,63 @@
+'use client';
 import Link from 'next/link';
 import Header from './Header';
+import { useRouter } from 'next/navigation';
+import { useAppKitAccount } from "@reown/appkit/react";
+import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { web3AuthService } from '../../services/api';
 
 export default function HeroSection() {
+    const router = useRouter();
+    const { address, isConnected } = useAppKitAccount();
+    const [isCheckingUser, setIsCheckingUser] = useState(false);
+
+    // Function to check user type and redirect accordingly
+    const checkUserAndRedirect = async () => {
+      if (!address) return;
+      
+      setIsCheckingUser(true);
+      try {
+        const nonceResponse = await web3AuthService.getNonce(address); // Check if nonce exists for the address or create new one
+        
+       const isVerified = await web3AuthService.verifyAddress(address); // Verify the address
+        if (!isVerified.exists == false) {
+          toast.error('Address not verified');
+          router.push('/register');
+          return;
+        }
+
+        const userType = nonceResponse.user_type;
+        
+        if (userType === 'organization') {
+          router.push('/dashboard');
+        } else if (userType === 'recipient') {
+          router.push('/recipient-dashboard');
+        } else {
+          router.push('/register');
+        }
+      } catch (error) {
+        console.error('Error checking user:', error);
+        router.push('/register');
+      } finally {
+        setIsCheckingUser(false);
+      }
+    };
+
+    useEffect(() => {
+      if (isConnected && address) {
+        checkUserAndRedirect();
+      }
+    }, [isConnected, address]);
+
+    const handleGetStarted = async () => {
+      if (!isConnected) {
+        toast.error('Please connect your wallet first');
+        return;
+      }
+      
+      await checkUserAndRedirect();
+    };
   return (
     <div
       className="min-h-screen bg-cover bg-center bg-no-repeat text-white p-6"
@@ -26,11 +82,17 @@ export default function HeroSection() {
           automated tax filing, and detailed reporting.
         </p>
         <div className="mt-8 flex space-x-16">
-          <Link href="/register">
-            <button className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold">
-              Get Started
-            </button>
-          </Link>
+          {/* <Link href="/register"> */}
+          {/* <button className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold">
+            Get Started
+          </button> */}
+          {/* </Link> */}
+          <button 
+            onClick={() => handleGetStarted()}
+            className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold"
+          >
+            {isCheckingUser ? 'Checking...' : 'Get Started'}
+          </button>
           <button className="border border-white hover:border-blue-500 px-2 py-2 rounded-lg font-semibold">
             Join Waitlist
           </button>

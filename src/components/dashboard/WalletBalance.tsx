@@ -1,10 +1,9 @@
 import useTokenBalances from '@/hook/useBalance';
-import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
+import { useAppKitAccount, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import React, { useEffect } from 'react';
 
 const WalletBalance = () => {
   const { address, isConnected } = useAppKitAccount();
-  const { chainId } = useAppKitNetwork();
   const { walletProvider } = useAppKitProvider<Provider>('eip155');
   
   const { balances, getTokenBalances } = useTokenBalances();
@@ -14,7 +13,7 @@ const WalletBalance = () => {
     if (isConnected && address && walletProvider) {
       getTokenBalances(address, walletProvider);
     }
-  }, [isConnected, address, walletProvider]);
+  }, [isConnected, address, walletProvider, getTokenBalances]);
 
 
   return (

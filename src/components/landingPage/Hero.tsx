@@ -5,6 +5,7 @@ import { useAppKitAccount } from "@reown/appkit/react";
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { web3AuthService } from '../../services/api';
+import Link from 'next/link';
 
 export default function HeroSection() {
     const router = useRouter();
@@ -85,9 +86,12 @@ export default function HeroSection() {
           >
             {isCheckingUser ? 'Checking...' : 'Get Started'}
           </button>
+          <Link href="#CTA">
           <button className="border border-white hover:border-blue-500 px-2 py-2 rounded-lg font-semibold">
             Join Waitlist
           </button>
+          </Link>
+          
         </div>
 
         {/* Stats */}

@@ -1,7 +1,19 @@
 import React from 'react';
 import Link from 'next/link';
 
-const RecentActivity = ({ activities = [] }) => {
+interface Activity {
+  id: string;
+  icon: React.ReactNode;
+  type: string;
+  message: string;
+  time: string;
+}
+
+interface RecentActivityProps {
+  activities?: Activity[];
+}
+
+const RecentActivity: React.FC<RecentActivityProps> = ({ activities = [] }) => {
   return (
     <div className="bg-black border border-[#2C2C2C] rounded-lg p-6 col-span-2">
       <h2 className="text-white text-lg font-medium mb-6">Recent Activity</h2>

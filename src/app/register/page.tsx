@@ -8,7 +8,6 @@ import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider, type Provide
 import { ethers } from 'ethers';
 import { profileService, web3AuthService } from '@/services/api';
 import toast from 'react-hot-toast';
-import { displayAddress } from '@/utils';
 import abi from '@/services/abi.json';
 import WalletButton from '@/components/WalletButton';
 import { storeToken } from './token';
@@ -97,9 +96,14 @@ const handleSubmit = async (e: React.FormEvent) => {
             'Organization description'
           );
           console.log("Gas estimation successful:", estimatedGas);
-        } catch (estimateError) {
+        } catch (estimateError: unknown) {
           console.error("Gas estimation failed:", estimateError);
-          throw new Error(`Failed to estimate gas: ${estimateError.reason || estimateError.message}`);
+          const errorMessage = estimateError instanceof Error 
+            ? estimateError.message 
+            : typeof estimateError === 'object' && estimateError !== null && 'reason' in estimateError
+              ? String(estimateError.reason)
+              : 'Unknown error during gas estimation';
+          throw new Error(`Failed to estimate gas: ${errorMessage}`);
         };
         
         // Then send the transaction with the estimated gas (plus buffer)
@@ -122,21 +126,31 @@ const handleSubmit = async (e: React.FormEvent) => {
         }
         toast.success('Organization created successfully!');
         router.push('/dashboard');
-      } catch (error) {
+      } catch (error: unknown) {
         // Rollback: Delete backend record if chain transaction failed
         if (backendOrgId) {
           // @ts-expect-error - ID type mismatch between backend and frontend
           await profileService.deleteOrganizationProfile(backendOrgId, token).catch(console.error);
         }
-        if (error.code === 'CALL_EXCEPTION') {
-          console.error('Contract call exception:', error);
-          const reason = error.reason || 'Unknown contract error';
-          throw new Error(`Contract error: ${reason}`);
-        } else if (error.code === 'INSUFFICIENT_FUNDS') {
-          throw new Error('Insufficient funds for transaction');
-        } else if (error.code === 'NETWORK_ERROR') {
-          throw new Error('Network error occurred');
+        
+        // Type guard for ethers.js errors
+        if (error && typeof error === 'object' && 'code' in error) {
+          const ethersError = error as { code: string; reason?: string };
+          
+          switch (ethersError.code) {
+            case 'CALL_EXCEPTION':
+              console.error('Contract call exception:', error);
+              throw new Error(`Contract error: ${ethersError.reason || 'Unknown contract error'}`);
+            case 'INSUFFICIENT_FUNDS':
+              throw new Error('Insufficient funds for transaction');
+            case 'NETWORK_ERROR':
+              throw new Error('Network error occurred');
+            default:
+              throw error;
+          }
         }
+        
+        // If it's not an ethers.js error, throw the original error
         throw error;
       }
     } catch (error: unknown) {

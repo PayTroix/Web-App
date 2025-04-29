@@ -6,10 +6,8 @@ import WalletButton from '../WalletButton';
 
 
 const Header = () => {
-  const { open } = useAppKit();
-  const { address, isConnected } =
-  useAppKitAccount(); 
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [_open, setOpen] = useState(false);
+  const [_isConnecting, _setIsConnecting] = useState(false);
 
 
   return (

@@ -6,7 +6,6 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 //Appkit
-import { headers } from 'next/headers' 
 import { AppKit } from '@/context/Appkit'
 
 export const metadata: Metadata = {

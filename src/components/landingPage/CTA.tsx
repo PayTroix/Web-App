@@ -32,7 +32,7 @@ const CTASection = () => {
   };
 
   return (
-    <div className="relative py-16 overflow-hidden">
+    <div id="CTA" className="relative py-16 overflow-hidden">
       {/* Background Image */}
       <div 
         className="absolute inset-0 z-0" 

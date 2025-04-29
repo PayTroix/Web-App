@@ -16,14 +16,14 @@ import { PendingRequest, PendingPayrollVolume } from './PendingRequest';
 import { getToken, storeToken } from '@/app/register/token';
 
 interface DashboardData {
-  treasuryBalance: string;
+  treasuryBalance?: string;
   totalEmployees: number;
   activeEmployees: number;
   performancePercentage: number;
   pendingRequests: number;
   pendingPayrollVolume: number;
   recentActivities: Array<{
-    id: number;
+    id: string;
     type: string;
     message: string;
     time: string;
@@ -114,39 +114,37 @@ export const DashboardContent = () => {
         }
 
 
-        const [orgProfile, recipientProfiles, notifications] = await Promise.all([
+        const [_orgProfile, recipientProfiles, notifications] = await Promise.all([
           profileService.listOrganizationProfiles(token),
           profileService.getOrganizationRecipients(token),
           notificationsService.listNotifications(token)
-
         ]);
 
         const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
         const payrollContract = new ethers.Contract(contractAddress, abi, signer);
         
-        const orgDetails = await payrollContract.getOrganizationDetails(address);
-        const orgContractAddress = await payrollContract.getOrganizationContract(address);
+        const _orgDetails = await payrollContract.getOrganizationDetails(address);
+        const _orgContractAddress = await payrollContract.getOrganizationContract(address);
      
         const dashboardData: DashboardData = {
-          // treasuryBalance: `$${parseFloat(treasuryBalance).toLocaleString()}`,
           totalEmployees: recipientProfiles.recipients.length,
           activeEmployees: recipientProfiles.recipients.length,
           performancePercentage: Math.round(
             (recipientProfiles.recipients.length / recipientProfiles.recipients.length) * 100
           ) || 0,
-          pendingRequests: 6, // Replace with actual data
-          pendingPayrollVolume: 6, // Replace with actual data
+          pendingRequests: 6,
+          pendingPayrollVolume: 6,
           recentActivities: recipientProfiles.recipients.length > 0 ? 
-                notifications
-                  .slice(0, 5)
-                  .map((notification, index) => ({
-                    id: notification.id,
-                    type: notification.type,
-                    message: notification.message,
-                    time: notification.created_at,
-                    icon: defaultRecentActivities[0].icon 
-                  }))
-                : []
+            notifications
+              .slice(0, 5)
+              .map((notification, _index) => ({
+                id: notification.id.toString(),
+                type: notification.type,
+                message: notification.message,
+                time: notification.created_at,
+                icon: defaultRecentActivities[0].icon 
+              }))
+            : []
         };
 
         setData(dashboardData);

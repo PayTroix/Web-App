@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { type Provider } from '@reown/appkit/react';
 
@@ -14,25 +14,35 @@ const ERC20_ABI = [
   },
 ];
 
-// Validate token addresses with SSR support
-const validateTokenAddress = (address: string | undefined): string | null => {
+// Improved token address validation with better error handling
+const getTokenAddresses = () => {
+  // For SSR support
   if (typeof window === 'undefined') {
-    return null; // Return null during SSR
+    return { USDT: null, USDC: null };
   }
-  if (!address) {
-    console.warn('Token address is not defined in environment variables');
-    return null;
-  }
-  if (!ethers.isAddress(address)) {
-    console.warn(`Invalid token address: ${address}`);
-    return null;
-  }
-  return address;
-};
 
-const TOKEN_ADDRESSES = {
-  USDT: validateTokenAddress(process.env.NEXT_PUBLIC_USDT_ADDRESS),
-  USDC: validateTokenAddress(process.env.NEXT_PUBLIC_USDC_ADDRESS),
+  const addresses = {
+    USDT: process.env.NEXT_PUBLIC_USDT_ADDRESS,
+    USDC: process.env.NEXT_PUBLIC_USDC_ADDRESS,
+  };
+
+  // Log helpful debugging information
+  if (!addresses.USDT) {
+    console.warn('NEXT_PUBLIC_USDT_ADDRESS is not defined in environment variables');
+  } else if (!ethers.isAddress(addresses.USDT)) {
+    console.warn(`Invalid USDT address: ${addresses.USDT}`);
+  }
+
+  if (!addresses.USDC) {
+    console.warn('NEXT_PUBLIC_USDC_ADDRESS is not defined in environment variables');
+  } else if (!ethers.isAddress(addresses.USDC)) {
+    console.warn(`Invalid USDC address: ${addresses.USDC}`);
+  }
+
+  return {
+    USDT: addresses.USDT && ethers.isAddress(addresses.USDT) ? addresses.USDT : null,
+    USDC: addresses.USDC && ethers.isAddress(addresses.USDC) ? addresses.USDC : null,
+  };
 };
 
 interface TokenBalance {
@@ -50,35 +60,42 @@ const useTokenBalances = () => {
     error: null,
   });
 
-  const getTokenBalances = async (walletAddress: string, provider: Provider) => {
+  // Check token configuration on mount
+  useEffect(() => {
+    const addresses = getTokenAddresses();
+    if (!addresses.USDT || !addresses.USDC) {
+      console.warn('Token addresses not properly configured. Check your environment variables.');
+    }
+  }, []);
+
+  const getTokenBalances = useCallback(async (walletAddress: string, provider: Provider) => {
     try {
       setBalances(prev => ({ ...prev, loading: true, error: null }));
-
-      // Check if we have valid token addresses
-      if (!TOKEN_ADDRESSES.USDT || !TOKEN_ADDRESSES.USDC) {
-        throw new Error('Token addresses are not properly configured');
+      
+      const addresses = getTokenAddresses();
+      const missingAddresses = [];
+      
+      if (!addresses.USDT) missingAddresses.push('USDT');
+      if (!addresses.USDC) missingAddresses.push('USDC');
+      
+      if (missingAddresses.length > 0) {
+        throw new Error(`Token addresses not configured: ${missingAddresses.join(', ')}`);
       }
 
-      // Convert provider to ethers.js provider
       const ethersProvider = new ethers.BrowserProvider(provider);
-
-      // Create contract instances
-      const usdtContract = new ethers.Contract(TOKEN_ADDRESSES.USDT, ERC20_ABI, ethersProvider);
-      const usdcContract = new ethers.Contract(TOKEN_ADDRESSES.USDC, ERC20_ABI, ethersProvider);
-
-      // Fetch balances in parallel
-      const [usdtBalance, usdcBalance] = await Promise.all([
-        usdtContract.balanceOf(walletAddress),
-        usdcContract.balanceOf(walletAddress),
+      
+      // Get all available token balances
+      const results = await Promise.allSettled([
+        fetchTokenBalance(addresses.USDT, walletAddress, ethersProvider),
+        fetchTokenBalance(addresses.USDC, walletAddress, ethersProvider),
       ]);
-
-      // Format balances (USDT and USDC have 6 decimals)
-      const formattedUSDT = ethers.formatUnits(usdtBalance, 6);
-      const formattedUSDC = ethers.formatUnits(usdcBalance, 6);
-
+      
+      const usdtResult = results[0];
+      const usdcResult = results[1];
+      
       setBalances({
-        USDT: formattedUSDT,
-        USDC: formattedUSDC,
+        USDT: usdtResult.status === 'fulfilled' ? usdtResult.value : '0',
+        USDC: usdcResult.status === 'fulfilled' ? usdcResult.value : '0',
         loading: false,
         error: null,
       });
@@ -87,8 +104,25 @@ const useTokenBalances = () => {
       setBalances(prev => ({
         ...prev,
         loading: false,
-        error: 'Failed to fetch token balances',
+        error: error instanceof Error ? error.message : 'Failed to fetch token balances',
       }));
+    }
+  }, []);
+
+  const fetchTokenBalance = async (
+    tokenAddress: string | null, 
+    walletAddress: string, 
+    provider: ethers.BrowserProvider
+  ): Promise<string> => {
+    if (!tokenAddress) return '0';
+    
+    try {
+      const contract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
+      const balance = await contract.balanceOf(walletAddress);
+      return ethers.formatUnits(balance, 6);
+    } catch (err) {
+      console.error(`Error fetching balance for token ${tokenAddress}:`, err);
+      return '0';
     }
   };
 

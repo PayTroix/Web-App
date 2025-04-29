@@ -1,25 +1,50 @@
-export const storeToken = (token: string) => {
+// token.ts
+
+export const storeToken = (token: string, expiresIn?: number) => {
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('jwt', token);
-      document.cookie = `jwt=${token}; path=/; Secure; SameSite=Strict`;
+        const expiresAt = expiresIn ? new Date().getTime() + expiresIn * 1000 : undefined;
+        localStorage.setItem('jwt', token);
+        if (expiresAt) {
+            localStorage.setItem('jwt_expires_at', expiresAt.toString());
+        }
     }
-  };
-  
-  export const getToken = () => {
+};
+
+export const getToken = (): string | null => {
     if (typeof window !== 'undefined') {
-      // From sessionStorage
-      try {
-        return sessionStorage.getItem('jwt');
-      } catch(error) {
-        console.error(error)
-        return document.cookie.split('; ').find(row => row.startsWith('jwt='))?.split('=')[1];
-      }
-  };
-}
-  
-  export const removeToken = () => {
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('jwt');
-      document.cookie = 'jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        try {
+            const token = localStorage.getItem('jwt');
+            const expiresAt = localStorage.getItem('jwt_expires_at');
+            
+            if (token && expiresAt) {
+                const expirationTime = parseInt(expiresAt, 10);
+                if (Date.now() > expirationTime) {
+                    removeToken();
+                    return null;
+                }
+            }
+            return token;
+        } catch (error) {
+            console.error('Error accessing localStorage:', error);
+            return null;
+        }
     }
-  };
+    return null;
+};
+
+export const removeToken = () => {
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem('jwt');
+        localStorage.removeItem('jwt_expires_at');
+    }
+};
+
+export const isTokenExpired = (): boolean => {
+    if (typeof window !== 'undefined') {
+        const expiresAt = localStorage.getItem('jwt_expires_at');
+        if (!expiresAt) return true;
+        
+        return Date.now() > parseInt(expiresAt, 10);
+    }
+    return true;
+};

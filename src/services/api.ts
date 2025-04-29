@@ -78,6 +78,12 @@ interface WaitlistEntryData {
   email: string;
 }
 
+interface UserData {
+  id: number;
+  username: string;
+  wallet_address: string;
+  user_type: string;
+}
 // Profile API services
 export const profileService = {
   // Organization Profile Endpoints
@@ -305,9 +311,9 @@ export const waitlistService = {
 // Web3Auth API service
 export const web3AuthService = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  login: async (data: any, token?: string) => {
+  login: async (data: any) => {
     try {
-      if (token) setAuthHeader(token);
+      // if (token) setAuthHeader(token);
       const response = await apiClient.post('/api/v1/web3auth/login/', data);
       return response.data;
     } catch (error) {
@@ -316,9 +322,9 @@ export const web3AuthService = {
     }
   },
 
-  getNonce: async (address: string, token?: string) => {
+  getNonce: async (address: string) => {
     try {
-      if (token) setAuthHeader(token);
+      // if (token) setAuthHeader(token);
       const response = await apiClient.get(`/api/v1/web3auth/nonce/${address}/`);
       return response.data;
     } catch (error) {
@@ -327,9 +333,9 @@ export const web3AuthService = {
     }
   },
 
-  verifyAddress: async (address: string, token?: string) => {
+  verifyAddress: async (address: string) => {
     try {
-      if (token) setAuthHeader(token);
+      // if (token) setAuthHeader(token);
       const response = await apiClient.get(`/api/v1/web3auth/verify-address/${address}/`);
       return response.data;
     } catch (error) {
@@ -338,7 +344,7 @@ export const web3AuthService = {
     }
   },
 
-  getUser: async (token: string) => {
+  getUser: async (token: string):Promise<UserData> => {
     try {
       setAuthHeader(token);
       const response = await apiClient.get('/api/v1/web3auth/user/');

@@ -1,55 +1,83 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { getToken } from '@/app/register/token';
+import { profileService } from '@/services/api';
+import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
+import { ethers } from 'ethers';
+import toast from 'react-hot-toast';
+import useTokenBalances from '@/hook/useBalance';
+
+interface Employee {
+  id: number;
+  name: string;
+  avatar: string;
+  date: string;
+  salary: string;
+  status: 'Completed' | 'Processing' | 'Pending';
+}
 
 export const PayrollContent = () => {
   const [activeTab, setActiveTab] = useState('payment');
   const [selectedGroup, setSelectedGroup] = useState('active');
-  //const [currency, setCurrency] = useState('USDT');
   const [paymentMonth, setPaymentMonth] = useState('');
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { address, isConnected } = useAppKitAccount();
+  const { chainId } = useAppKitNetwork();
+  const { walletProvider } = useAppKitProvider<Provider>('eip155');
+  const { balances, getTokenBalances } = useTokenBalances();
+  const [totalEmployees, setTotalEmployees] = useState(0);
+  const [activeEmployees, setActiveEmployees] = useState(0);
+  const [pendingPayments, setPendingPayments] = useState(0);
 
-  // Sample employee data for the salary batch table
-  const employees = [
-    {
-      id: 1,
-      name: 'Jane Doe',
-      avatar: '/jane-doe.jpg',
-      date: 'April',
-      salary: '$4000(USDT)',
-      status: 'Completed',
-    },
-    {
-      id: 2,
-      name: 'John Smith',
-      avatar: '/john-smith.jpg',
-      date: 'April',
-      salary: '$4000(USDT)',
-      status: 'Processing',
-    },
-    {
-      id: 3,
-      name: 'Jane Doe',
-      avatar: '/jane-doe.jpg',
-      date: 'April',
-      salary: '$4000(USDT)',
-      status: 'Pending',
-    },
-    {
-      id: 4,
-      name: 'John Smith',
-      avatar: '/john-smith.jpg',
-      date: 'April',
-      salary: '$4000(USDT)',
-      status: 'Processing',
-    },
-    {
-      id: 5,
-      name: 'Jane Doe',
-      avatar: '/jane-doe.jpg',
-      date: 'April',
-      salary: '$4000(USDT)',
-      status: 'Completed',
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!isConnected || !address) return;
+      
+      setLoading(true);
+      try {
+        const token = getToken();
+        if (!token) return;
+
+        await getTokenBalances(address, walletProvider);
+
+        const recipientProfiles = await profileService.getOrganizationRecipients(token);
+        
+        // Check if recipientProfiles and recipientProfiles.recipients exist before accessing properties
+        if (recipientProfiles && recipientProfiles.recipients) {
+          setTotalEmployees(recipientProfiles.recipients.length);
+          const activeCount = recipientProfiles.recipients.filter((e: any) => e.status === 'active').length;
+          setActiveEmployees(activeCount);
+          setPendingPayments(Math.floor(activeCount * 0.3));
+
+          const mockPayrollData = recipientProfiles.recipients.slice(0, 5).map((recipient: any, index: number) => ({
+            id: recipient.id,
+            name: recipient.name || 'Unknown',
+            avatar: '',
+            date: new Date().toLocaleString('default', { month: 'long' }),
+            salary: `$${recipient.salary || '0'}(USDT)`,
+            status: ['Completed', 'Processing', 'Pending'][index % 3] as 'Completed' | 'Processing' | 'Pending'
+          }));
+
+          setEmployees(mockPayrollData);
+        } else {
+          // Handle the case when recipients is undefined
+          console.warn('No recipients data found');
+          setTotalEmployees(0);
+          setActiveEmployees(0);
+          setPendingPayments(0);
+          setEmployees([]);
+        }
+      } catch (error) {
+        console.error('Error fetching payroll data:', error);
+        toast.error('Failed to load payroll data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [isConnected, address, walletProvider, chainId]);
 
   // Function to render the status with appropriate color
   const renderStatus = (status: string) => {
@@ -65,11 +93,28 @@ export const PayrollContent = () => {
     }
   };
 
+  const calculateTotalAmount = () => {
+    if (selectedGroup === 'all') {
+      return employees.reduce((sum, emp) => sum + parseFloat(emp.salary.replace('$', '').split('(')[0]), 0);
+    } else if (selectedGroup === 'active') {
+      return employees.filter(emp => emp.status !== 'Pending').reduce((sum, emp) => sum + parseFloat(emp.salary.replace('$', '').split('(')[0]), 0);
+    } else {
+      return employees.filter(emp => emp.status === 'Pending').reduce((sum, emp) => sum + parseFloat(emp.salary.replace('$', '').split('(')[0]), 0);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 p-2">
-      
       {/* Dashboard Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-6  gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         {/* Treasury Wallet Balance */}
         <div className="bg-black rounded-lg px-4 py-4 flex border border-[#2C2C2C] flex-col relative overflow-hidden col-span-3 h-52">
           <div className="flex items-center justify-between">
@@ -87,7 +132,7 @@ export const PayrollContent = () => {
           </div>
           <p className="text-gray-400 mt-12">Treasury wallet balance</p>
           <div className='flex items-center gap-2'>
-            <h2 className="text-white text-3xl font-semibold mt-2">$345,840</h2>
+            <h2 className="text-white text-3xl font-semibold mt-2">${balances.loading ? '...' : balances.USDT || '0'}</h2>
             <p className="text-gray-400 text-xs">(USDT)</p>
           </div>
         </div>
@@ -105,22 +150,24 @@ export const PayrollContent = () => {
                 stroke="#3b82f6" 
                 strokeWidth="8" 
                 strokeDasharray="339.3" 
-                strokeDashoffset="84.825" 
+                strokeDashoffset={totalEmployees > 0 ? 339.3 * (1 - (activeEmployees / totalEmployees)) : 339.3}
                 transform="rotate(-90 60 60)"
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-white text-xl font-bold">75%</span>
+              <span className="text-white text-xl font-bold">
+                {totalEmployees > 0 ? `${Math.round((activeEmployees / totalEmployees) * 100)}%` : '0%'}
+              </span>
             </div>
           </div>
           <div className="mt-4 whitespace-nowrap">
-            <h2 className="text-white text-3xl font-semibold text-center">41</h2>
+            <h2 className="text-white text-3xl font-semibold text-center">{activeEmployees}</h2>
             <p className="text-gray-500 text-sm text-center">Active employee</p>
           </div>
         </div>
 
         {/* Pending Payments */}
-        <div className="bg-black rounded-lg px-2  border border-[#2C2C2C] py-2 flex flex-col relative overflow-hidden col-span-2 ">
+        <div className="bg-black rounded-lg px-2 border border-[#2C2C2C] py-2 flex flex-col relative overflow-hidden col-span-2">
           <div className="flex items-center justify-between">
             <div className="p-3 rounded-full">
               <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white">
@@ -136,7 +183,7 @@ export const PayrollContent = () => {
             </svg>
           </div>
           <div className="mt-16 gap-2 flex items-center">
-            <h2 className="text-white text-3xl font-semibold">18</h2>
+            <h2 className="text-white text-3xl font-semibold">{pendingPayments}</h2>
             <p className="text-gray-500 text-sm">Pending payment</p>
           </div>
         </div>
@@ -252,7 +299,7 @@ export const PayrollContent = () => {
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </div>
-                  <span className="text-3xl">$48,324.08</span>
+                  <span className="text-3xl">${calculateTotalAmount().toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -307,7 +354,6 @@ export const PayrollContent = () => {
                 <div key={employee.id} className="grid grid-cols-4 gap-4 items-center border-b border-gray-800 pb-6">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-700 flex items-center justify-center">
-                      {/* Simple avatar fallback if image fails to load */}
                       <div className="text-white text-xs">
                         {employee.name.split(' ').map(n => n[0]).join('')}
                       </div>

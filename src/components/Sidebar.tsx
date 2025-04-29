@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { JSX } from 'react/jsx-runtime';
+import WalletButton from './WalletButton';
 
 interface NavItem {
   label: string;
@@ -19,12 +20,8 @@ export const Header: FC = () => {
         <Image src="/logo.png" alt="Logo" width={120} height={120} />
       </div>
       <div className="flex items-center text-blue-500">
-        <span className="text-sm mr-2">0xB9....4aba</span>
-        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
-        </div>
+        {/* <span className="text-sm mr-2">0xB9....4aba</span> */}
+        <WalletButton />
       </div>
     </header>
   );

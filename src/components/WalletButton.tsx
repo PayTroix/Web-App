@@ -5,6 +5,7 @@ import { useAppKit, useAppKitAccount, useAppKitNetwork, useDisconnect } from '@r
 import { displayAddress } from '@/utils';
 import { ChevronDown } from 'lucide-react';
 import { mainnet, sepolia, lisk, liskSepolia, base, baseSepolia } from '@reown/appkit/networks'
+import { removeToken } from '@/app/register/token';
 
 type WalletButtonProps = {
   className?: string;
@@ -72,6 +73,7 @@ const WalletButton: React.FC<WalletButtonProps> = ({ className = '' }) => {
     e.stopPropagation();
     await disconnect();
     setIsAccountMenuOpen(false);
+    removeToken();
   };
 
   if (!isConnected || !address) {

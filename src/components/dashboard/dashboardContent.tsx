@@ -7,23 +7,22 @@ import abi from '@/services/abi.json';
 import { notificationsService, profileService, web3AuthService } from '@/services/api';
 import toast from 'react-hot-toast';
 
-// Import our new components
 import WalletBalance from './WalletBalance';
 import TotalEmployees from './TotalEmployees';
 import ActiveEmployees from './ActiveEmployees';
 import RecentActivity from './RecentActivity';
 import { PendingRequest, PendingPayrollVolume } from './PendingRequest';
-import { getToken, storeToken } from '@/app/register/token';
+import { getToken, isTokenExpired, removeToken, storeToken } from '@/app/register/token';
 
 interface DashboardData {
-  treasuryBalance?: string;
+  // treasuryBalance: string;
   totalEmployees: number;
   activeEmployees: number;
   performancePercentage: number;
   pendingRequests: number;
   pendingPayrollVolume: number;
   recentActivities: Array<{
-    id: string;
+    id: number;
     type: string;
     message: string;
     time: string;
@@ -90,70 +89,84 @@ export const DashboardContent = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!isConnected || !address) return;
-      
-      setLoading(true);
-      try {
-        const provider = new ethers.BrowserProvider(walletProvider, chainId);
-        const signer = await provider.getSigner();
-        let token;
-        if (getToken()){
-          token = getToken()
-
-        } else {
-        const { nonce } = await web3AuthService.getNonce(address);
-        const message = `I'm signing my one-time nonce: ${nonce}`;
-        const signature = await signer.signMessage(message);
+        if (!isConnected || !address) return;
         
-        const authResponse = await web3AuthService.login({
-          address,
-          signature
-        });
-        token = authResponse.access;
-        storeToken(token);
+        setLoading(true);
+        try {
+            const provider = new ethers.BrowserProvider(walletProvider, chainId);
+            const signer = await provider.getSigner();
+            
+            let token = getToken();
+            
+            // If no token or token is expired, get a new one
+            if (!token || isTokenExpired()) {
+                const { nonce } = await web3AuthService.getNonce(address);
+                const message = `I'm signing my one-time nonce: ${nonce}`;
+                const signature = await signer.signMessage(message);
+                
+                const authResponse = await web3AuthService.login({
+                    address,
+                    signature
+                });
+                
+                token = authResponse.access;
+                // Assuming your authResponse includes expiresIn (in seconds)
+                storeToken(token, authResponse.expiresIn || 3600); // Default to 1 hour if not provided
+            }
+
+          const [orgProfile, recipientProfiles, notifications] = await Promise.all([
+            profileService.listOrganizationProfiles(token),
+            profileService.getOrganizationRecipients(token),
+            notificationsService.listNotifications(token)
+          ]);
+
+          // Safely access recipients - handle potential undefined values
+          const recipients = recipientProfiles?.recipients || [];
+          const recipientsLength = Array.isArray(recipients) ? recipients.length : 0;
+          
+          // Safely access notifications - handle potential undefined values
+          const notificationsList = Array.isArray(notifications) ? notifications : [];
+
+          const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
+          const payrollContract = new ethers.Contract(contractAddress, abi, signer);
+          
+          const orgDetails = await payrollContract.getOrganizationDetails(address);
+          const orgContractAddress = await payrollContract.getOrganizationContract(address);
+       
+          const dashboardData: DashboardData = {
+            // treasuryBalance: `$${parseFloat(treasuryBalance).toLocaleString()}`,
+            totalEmployees: recipientsLength,
+            activeEmployees: recipientsLength,
+            performancePercentage: recipientsLength > 0 ? 
+              Math.round((recipientsLength / recipientsLength) * 100) : 0,
+            pendingRequests: 6, // Replace with actual data
+            pendingPayrollVolume: 6, // Replace with actual data
+            recentActivities: recipientsLength > 0 ? 
+                  notificationsList
+                    .slice(0, 5)
+                    .map((notification, index) => ({
+                      id: notification.id || index,
+                      type: notification.type || 'Notification',
+                      message: notification.message || 'System notification',
+                      time: notification.created_at || 'Recently',
+                      icon: defaultRecentActivities[Math.min(index, defaultRecentActivities.length - 1)].icon 
+                    }))
+                  : []
+          };
+
+          setData(dashboardData);
+        } catch (error: any) {
+          console.error('Error fetching dashboard data:', error);
+          // If the error is due to token expiration, remove the token
+          if (error.response?.status === 401) {
+              removeToken();
+              toast.error('Session expired. Please refresh the page.');
+          } else {
+              toast.error('Failed to load dashboard data');
+          }
+        } finally {
+            setLoading(false);
         }
-
-
-        const [_orgProfile, recipientProfiles, notifications] = await Promise.all([
-          profileService.listOrganizationProfiles(token),
-          profileService.getOrganizationRecipients(token),
-          notificationsService.listNotifications(token)
-        ]);
-
-        const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
-        const payrollContract = new ethers.Contract(contractAddress, abi, signer);
-        
-        const _orgDetails = await payrollContract.getOrganizationDetails(address);
-        const _orgContractAddress = await payrollContract.getOrganizationContract(address);
-     
-        const dashboardData: DashboardData = {
-          totalEmployees: recipientProfiles.recipients.length,
-          activeEmployees: recipientProfiles.recipients.length,
-          performancePercentage: Math.round(
-            (recipientProfiles.recipients.length / recipientProfiles.recipients.length) * 100
-          ) || 0,
-          pendingRequests: 6,
-          pendingPayrollVolume: 6,
-          recentActivities: recipientProfiles.recipients.length > 0 ? 
-            notifications
-              .slice(0, 5)
-              .map((notification, _index) => ({
-                id: notification.id.toString(),
-                type: notification.type,
-                message: notification.message,
-                time: notification.created_at,
-                icon: defaultRecentActivities[0].icon 
-              }))
-            : []
-        };
-
-        setData(dashboardData);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        toast.error('Failed to load dashboard data');
-      } finally {
-        setLoading(false);
-      }
     };
 
     fetchData();
@@ -175,7 +188,7 @@ export const DashboardContent = () => {
         <WalletBalance />
 
         {/* Total Employees */}
-        <TotalEmployees totalEmployees={data?.totalEmployees || 0} />
+        <TotalEmployees totalEmployees={data ? data.totalEmployees : 0} />
 
         {/* Active Employees */}
         <ActiveEmployees 

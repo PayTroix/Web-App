@@ -1,19 +1,75 @@
 'use client';
 import Header from './Header';
 import { useRouter } from 'next/navigation';
-import { useAppKitAccount } from "@reown/appkit/react";
+import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider, type Provider } from "@reown/appkit/react";
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { web3AuthService } from '../../services/api';
 import Link from 'next/link';
+import { getToken, removeToken, storeToken } from '@/app/register/token';
+import { ethers } from 'ethers';
+
+type AuthResponse = {
+  access: string;
+  refresh?: string;
+  user?: {
+    user_type: 'organization' | 'recipient';
+  };
+};
+
+type VerifyAddressResponse = {
+  exists: boolean;
+  user_type?: 'organization' | 'recipient';
+};
 
 export default function HeroSection() {
     const router = useRouter();
     const { address, isConnected } = useAppKitAccount();
     const [isCheckingUser, setIsCheckingUser] = useState(false);
+    const { chainId } = useAppKitNetworkCore();
+    const { walletProvider } = useAppKitProvider<Provider>('eip155');
 
-    // Function to check user type and redirect accordingly
-    const checkUserAndRedirect = async () => {
+    const login = async (): Promise<boolean> => {
+      if (!isConnected || !address) {
+        toast.error('Please connect your wallet first');
+        return false;
+      }
+      
+      setIsCheckingUser(true);
+      try {
+        const { nonce } = await web3AuthService.getNonce(address);
+        const message = `I'm signing my one-time nonce: ${nonce}`;
+        const provider = new ethers.BrowserProvider(walletProvider, chainId);
+        const signer = await provider.getSigner();
+        const signature = await signer.signMessage(message);
+    
+        const authData = {
+          address: address,
+          signature: signature,
+        };
+        
+        const authResponse: AuthResponse = await web3AuthService.login(authData);
+        storeToken(authResponse.access);
+        return true;
+      } catch (error: unknown) {
+        console.error('Login error:', error);
+        
+        if (typeof error === 'object' && error !== null && 'response' in error) {
+          const err = error as { response?: { data?: { code?: string } } };
+          if (err.response?.data?.code === 'token_not_valid') {
+            removeToken(); 
+            toast.error('Your session has expired. Please sign in again.');
+          }
+        } else {
+          toast.error('An error occurred during login. Please try again.');
+        }
+        return false;
+      } finally {
+        setIsCheckingUser(false);
+      }
+    };
+
+    const checkUserAndRedirect = async (): Promise<void> => {
       if (!address) {
         toast.error('Please connect your wallet first');
         return;
@@ -21,33 +77,49 @@ export default function HeroSection() {
       
       setIsCheckingUser(true);
       try {
-        const nonceResponse = await web3AuthService.getNonce(address); // Check if nonce exists for the address or create new one
+        const verifyResponse: VerifyAddressResponse = await web3AuthService.verifyAddress(address);
         
-        const isVerified = await web3AuthService.verifyAddress(address); // Verify the address
-        if (!isVerified.exists) {
-          toast.error('Address not verified');
+        if (!verifyResponse.exists) {
+          toast.error('Address not registered');
           router.push('/register');
           return;
         }
 
-        const userType = nonceResponse.user_type;
+        let token = getToken();
+        if (!token) {
+          const loginSuccess = await login();
+          if (!loginSuccess) return;
+          token = getToken();
+        }
+
+        // Assuming you have a getUser endpoint that returns user data
+        const user = await web3AuthService.getUser(token);
+        const userType = user.user_type;
         
         if (userType === 'organization') {
           router.push('/dashboard');
         } else if (userType === 'recipient') {
           router.push('/recipient-dashboard');
-        } else {
-          router.push('/register');
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Error checking user:', error);
-        router.push('/register');
+        
+        if (typeof error === 'object' && error !== null && 'response' in error) {
+          const err = error as { response?: { data?: { code?: string } } };
+          if (err.response?.data?.code === 'token_not_valid') {
+            removeToken();
+            toast.error('Your session has expired. Please sign in again.');
+            await login();
+          }
+        } else {
+          toast.error('An error occurred. Please try again.');
+        }
       } finally {
         setIsCheckingUser(false);
       }
     };
 
-    const handleGetStarted = async () => {
+    const handleGetStarted = async (): Promise<void> => {
       if (!isConnected) {
         toast.error('Please connect your wallet first');
         return;

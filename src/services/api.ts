@@ -16,13 +16,29 @@ const setAuthHeader = (token: string) => {
   apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 };
 
-// Type definitions
+interface Notification {
+  id: number;
+  type: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  user: number;
+}
+
+interface PatchedNotification {
+  type?: string;
+  message?: string;
+  is_read?: boolean;
+}
+
 interface OrganizationProfile {
   id: number;
   name: string;
   email: string;
   organization_address: string;
+  organization_phone?: string;
   website?: string;
+  recipients: RecipientProfile[];
   created_at: string;
   updated_at: string;
 }
@@ -126,6 +142,16 @@ export const profileService = {
       await apiClient.delete(`/api/v1/profile/organization-profile/${id}/`);
     } catch (error) {
       console.error('Error deleting organization profile:', error);
+      throw error;
+    }
+  },
+  getOrganizationRecipients: async (token: string): Promise<OrganizationProfile> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get('/api/v1/profile/organization-profile/get_organization_recipients/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching organization recipients:', error);
       throw error;
     }
   },
@@ -319,6 +345,79 @@ export const web3AuthService = {
       return response.data;
     } catch (error) {
       console.error('Error getting user:', error);
+      throw error;
+    }
+  },
+};
+
+export const notificationsService = {
+  // List all notifications
+  listNotifications: async (token: string): Promise<Notification[]> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get('/api/v1/notifications/notifications/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      throw error;
+    }
+  },
+
+  // Create a new notification
+  createNotification: async (data: Omit<Notification, 'id' | 'is_read' | 'created_at' | 'user'>, token: string): Promise<Notification> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.post('/api/v1/notifications/notifications/', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      throw error;
+    }
+  },
+
+  // Retrieve a specific notification
+  getNotification: async (id: number, token: string): Promise<Notification> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get(`/api/v1/notifications/notifications/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching notification:', error);
+      throw error;
+    }
+  },
+
+  // Update a notification
+  updateNotification: async (id: number, data: Omit<Notification, 'id' | 'is_read' | 'created_at' | 'user'>, token: string): Promise<Notification> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.put(`/api/v1/notifications/notifications/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating notification:', error);
+      throw error;
+    }
+  },
+
+  // Partially update a notification
+  partialUpdateNotification: async (id: number, data: PatchedNotification, token: string): Promise<Notification> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.patch(`/api/v1/notifications/notifications/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error partially updating notification:', error);
+      throw error;
+    }
+  },
+
+  // Delete a notification
+  deleteNotification: async (id: number, token: string): Promise<void> => {
+    try {
+      setAuthHeader(token);
+      await apiClient.delete(`/api/v1/notifications/notifications/${id}/`);
+    } catch (error) {
+      console.error('Error deleting notification:', error);
       throw error;
     }
   },

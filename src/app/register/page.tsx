@@ -10,6 +10,8 @@ import { profileService, web3AuthService } from '@/services/api';
 import toast from 'react-hot-toast';
 import { displayAddress } from '@/utils';
 import abi from '@/services/abi.json';
+import WalletButton from '@/components/WalletButton';
+import { storeToken } from './token';
 
 function RegisterPage() {
   const router = useRouter();
@@ -52,6 +54,8 @@ const handleSubmit = async (e: React.FormEvent) => {
       };
       const authResponse = await web3AuthService.login(authData);
       const token = authResponse.access;
+      storeToken(token);
+
 
       // Prepare organization data
       const orgData = {
@@ -60,10 +64,19 @@ const handleSubmit = async (e: React.FormEvent) => {
         organization_address: `${formData.get('address1')}, ${formData.get('address2')}, ${formData.get('state')}, ${formData.get('country')}`
       };
 
-      // Initialize contract
+      
       const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
-      // const payrollContract = initPayrollContract(contractAddress, provider, signer);
+      if (!ethers.isAddress(contractAddress)) {
+        throw new Error('Invalid contract address');
+      }
+
       const payrollContract = new ethers.Contract(contractAddress, abi, signer);
+
+      // Add code to verify the contract exists
+      const code = await provider.getCode(contractAddress);
+      if (code === '0x') {
+        throw new Error('No contract found at the specified address');
+      }
 
       // Start atomic transaction flow
       let backendOrgId: string | null = null;
@@ -74,16 +87,38 @@ const handleSubmit = async (e: React.FormEvent) => {
         // @ts-expect-error - ID type mismatch between backend and frontend
         backendOrgId = organizationResponse.id;
 
-        // 5. Then create on-chain organization
-        // const tx = await payrollContract.createOrganization(orgData.name, 'Organization description');
-        // const receipt = await payrollContract.waitForTransaction(tx);
-        // if (receipt?.status !== 1) {
-        //   throw new Error('Transaction failed on chain');
-        // }
-        const tx = await payrollContract.createOrganization(orgData.name, 'Organization description');
-        const receipt = await payrollContract.waitForTransaction(tx);
-        if (receipt?.status !== 1) {
-          throw new Error('Transaction failed on chain');
+        console.log("Creating organization with params:", orgData.name, 'Organization description');
+        
+       
+        let estimatedGas;
+        try {
+          estimatedGas = await payrollContract.createOrganization.estimateGas(
+            orgData.name, 
+            'Organization description'
+          );
+          console.log("Gas estimation successful:", estimatedGas);
+        } catch (estimateError) {
+          console.error("Gas estimation failed:", estimateError);
+          throw new Error(`Failed to estimate gas: ${estimateError.reason || estimateError.message}`);
+        };
+        
+        // Then send the transaction with the estimated gas (plus buffer)
+        const tx = await payrollContract.createOrganization(
+          orgData.name, 
+          'Organization description',
+          { 
+            gasLimit: (estimatedGas * BigInt(12)) / BigInt(10) // Add 20% buffer
+          }
+        );
+        
+        console.log("Transaction sent:", tx.hash);
+        const receipt = await tx.wait();
+        console.log("Transaction confirmed:", receipt);
+        
+        if (!receipt || receipt.status !== 1) {
+          // Try to get more detailed error information
+          const txDetails = await provider.getTransaction(tx.hash);
+          throw new Error(`Transaction failed with status ${receipt.status}. Transaction: ${JSON.stringify(txDetails)}`);
         }
         toast.success('Organization created successfully!');
         router.push('/dashboard');
@@ -92,6 +127,15 @@ const handleSubmit = async (e: React.FormEvent) => {
         if (backendOrgId) {
           // @ts-expect-error - ID type mismatch between backend and frontend
           await profileService.deleteOrganizationProfile(backendOrgId, token).catch(console.error);
+        }
+        if (error.code === 'CALL_EXCEPTION') {
+          console.error('Contract call exception:', error);
+          const reason = error.reason || 'Unknown contract error';
+          throw new Error(`Contract error: ${reason}`);
+        } else if (error.code === 'INSUFFICIENT_FUNDS') {
+          throw new Error('Insufficient funds for transaction');
+        } else if (error.code === 'NETWORK_ERROR') {
+          throw new Error('Network error occurred');
         }
         throw error;
       }
@@ -124,10 +168,11 @@ const handleSubmit = async (e: React.FormEvent) => {
               <Image src="/logo.png" alt="Logo" width={120} height={120} />
           </Link>
         </div>
-        <div className="flex items-center text-blue-400">
+        {/* <div className="flex items-center text-blue-400">
           <span className="mr-2">✓</span>
           <span className="text-sm text-gray-400">{displayAddress(address)}</span>
-        </div>
+        </div> */}
+        <WalletButton />
       </header>
 
       {/* Main Content */}

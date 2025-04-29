@@ -1,12 +1,10 @@
 'use client';
 import React, { useState} from 'react';
 import Image from 'next/image';
-import { useAppKit, useAppKitAccount } from "@reown/appkit/react";
 import WalletButton from '../WalletButton';
 
 
 const Header = () => {
-  const [_open, setOpen] = useState(false);
   const [_isConnecting, _setIsConnecting] = useState(false);
 
 

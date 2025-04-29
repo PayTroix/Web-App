@@ -24,8 +24,8 @@ type DotProps = {
   key?: string | number;
   value?: number;
   dataKey?: string;
-  payload?: any;
-  points?: any;
+  payload?: { name: string; payroll: number };
+  points?: Array<{ x: number; y: number }>;
 };
 
 // Custom tooltip component

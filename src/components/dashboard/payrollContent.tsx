@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { getToken } from '@/app/register/token';
 import { profileService } from '@/services/api';
 import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
-import { ethers } from 'ethers';
 import toast from 'react-hot-toast';
 import useTokenBalances from '@/hook/useBalance';
 
@@ -14,6 +13,17 @@ interface Employee {
   date: string;
   salary: string;
   status: 'Completed' | 'Processing' | 'Pending';
+}
+
+interface Recipient {
+  id: number;
+  name: string;
+  status: string;
+  salary?: string;
+}
+
+interface RecipientProfiles {
+  recipients: Recipient[];
 }
 
 export const PayrollContent = () => {
@@ -46,11 +56,11 @@ export const PayrollContent = () => {
         // Check if recipientProfiles and recipientProfiles.recipients exist before accessing properties
         if (recipientProfiles && recipientProfiles.recipients) {
           setTotalEmployees(recipientProfiles.recipients.length);
-          const activeCount = recipientProfiles.recipients.filter((e: any) => e.status === 'active').length;
+          const activeCount = recipientProfiles.recipients.filter((e: Recipient) => e.status === 'active').length;
           setActiveEmployees(activeCount);
           setPendingPayments(Math.floor(activeCount * 0.3));
 
-          const mockPayrollData = recipientProfiles.recipients.slice(0, 5).map((recipient: any, index: number) => ({
+          const mockPayrollData = recipientProfiles.recipients.slice(0, 5).map((recipient: Recipient, index: number) => ({
             id: recipient.id,
             name: recipient.name || 'Unknown',
             avatar: '',
@@ -77,7 +87,7 @@ export const PayrollContent = () => {
     };
 
     fetchData();
-  }, [isConnected, address, walletProvider, chainId]);
+  }, [isConnected, address, walletProvider, chainId, getTokenBalances]);
 
   // Function to render the status with appropriate color
   const renderStatus = (status: string) => {

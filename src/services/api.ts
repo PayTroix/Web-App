@@ -91,9 +91,9 @@ interface UserData {
 // Profile API services
 export const profileService = {
   // Organization Profile Endpoints
-  listOrganizationProfiles: async (token: string): Promise<OrganizationProfile[]> => {
+  listOrganizationProfiles: async (token: string | null): Promise<OrganizationProfile[]> => {
     try {
-      setAuthHeader(token);
+      if (token) setAuthHeader(token);
       const response = await apiClient.get('/api/v1/profile/organization-profile/');
       return response.data;
     } catch (error) {
@@ -155,9 +155,9 @@ export const profileService = {
       throw error;
     }
   },
-  getOrganizationRecipients: async (token: string): Promise<OrganizationProfile> => {
+  getOrganizationRecipients: async (token: string | null): Promise<OrganizationProfile> => {
     try {
-      setAuthHeader(token);
+      if (token) setAuthHeader(token);
       const response = await apiClient.get('/api/v1/profile/organization-profile/get_organization_recipients/');
       return response.data;
     } catch (error) {
@@ -362,9 +362,9 @@ export const web3AuthService = {
 
 export const notificationsService = {
   // List all notifications
-  listNotifications: async (token: string): Promise<Notification[]> => {
+  listNotifications: async (token: string | null): Promise<Notification[]> => {
     try {
-      setAuthHeader(token);
+      if (token) setAuthHeader(token);
       const response = await apiClient.get('/api/v1/notifications/notifications/');
       return response.data;
     } catch (error) {

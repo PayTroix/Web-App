@@ -1,14 +1,25 @@
 'use client';
 import { getToken, isTokenExpired, removeToken, storeToken } from '@/app/register/token';
-import { notificationsService, profileService, web3AuthService } from '@/services/api';
+import { profileService, web3AuthService } from '@/services/api';
 import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import { ethers } from 'ethers';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import abi from "@/services/abi.json";
 import toast from 'react-hot-toast';
 import useTokenBalances from '@/hook/useBalance';
 
-interface Employee {
+
+// API response type
+interface RecipientProfile {
+  id: number;
+  name: string;
+  wallet: string;
+  position?: string;
+  salary?: string;
+  status?: 'active' | 'inactive' | 'on leave';
+}
+
+interface Recipient {
   id: number;
   name: string;
   position: string;
@@ -17,88 +28,91 @@ interface Employee {
   status: 'active' | 'inactive' | 'on leave';
 }
 
+
 export const EmployeesContent = () => {
   const [loading, setLoading] = useState(true);
   const { address, isConnected } = useAppKitAccount();
   const { chainId } = useAppKitNetwork();
   const { walletProvider } = useAppKitProvider<Provider>('eip155');
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<Recipient[]>([]);
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [activeEmployees, setActiveEmployees] = useState(0);
   const { balances, getTokenBalances } = useTokenBalances();
   const balance = balances.loading ? '...' : balances.USDT || balances.USDC || '0';
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!isConnected || !address) return;
+  const fetchData = useCallback(async () => {
+    if (!isConnected || !address) return;
+    
+    setLoading(true);
+    try {
+      const provider = new ethers.BrowserProvider(walletProvider, chainId);
+      const signer = await provider.getSigner();
       
-      setLoading(true);
-      try {
-        const provider = new ethers.BrowserProvider(walletProvider, chainId);
-        const signer = await provider.getSigner();
+      let token = getToken();
+      
+      // If no token or token is expired, get a new one
+      if (!token || isTokenExpired()) {
+        const { nonce } = await web3AuthService.getNonce(address);
+        const message = `I'm signing my one-time nonce: ${nonce}`;
+        const signature = await signer.signMessage(message);
         
-        let token = getToken();
+        const authResponse = await web3AuthService.login({
+          address,
+          signature
+        });
         
-        // If no token or token is expired, get a new one
-        if (!token || isTokenExpired()) {
-          const { nonce } = await web3AuthService.getNonce(address);
-          const message = `I'm signing my one-time nonce: ${nonce}`;
-          const signature = await signer.signMessage(message);
-          
-          const authResponse = await web3AuthService.login({
-            address,
-            signature
-          });
-          
-          token = authResponse.access;
-          storeToken(token, authResponse.expiresIn || 3600); // Default to 1 hour if not provided
-        }
+        token = authResponse.access;
+        storeToken(token as string, authResponse.expiresIn || 3600); // Default to 1 hour if not provided
+      }
 
-        if (balances.USDT === '0' && balances.USDC === '0' && !balances.loading) {
-          await getTokenBalances(address, walletProvider);
-        }
+      if (balances.USDT === '0' && balances.USDC === '0' && !balances.loading) {
+        await getTokenBalances(address, walletProvider);
+      }
 
-        const recipientProfiles = await profileService.getOrganizationRecipients(token);
-        
-        // Handle the case where recipients might be undefined or not an array
-        const recipients = recipientProfiles?.recipients || [];
-        
-        const transformedEmployees = Array.isArray(recipients) ? recipients.map((recipient: any) => ({
-          id: recipient.id,
-          name: recipient.name || 'Unknown',
-          position: recipient.position || 'Not specified',
-          wallet: recipient.wallet_address ? `${recipient.wallet_address.substring(0, 4)}...${recipient.wallet_address.substring(recipient.wallet_address.length - 3)}` : 'No wallet',
-          salary: recipient.salary ? `$${recipient.salary}(USDT)` : '$0(USDT)',
-          status: recipient.status || ''
-        })) : [];
+      const recipientProfiles = await profileService.getOrganizationRecipients(token);
+      
+      // Handle the case where recipients might be undefined or not an array
+      const recipients = recipientProfiles?.recipients || [];
+      
+      const transformedEmployees = Array.isArray(recipients) ? recipients.map((recipient: RecipientProfile) => ({
+        id: recipient.id,
+        name: recipient.name || 'Unknown',
+        position: recipient.position || 'Not specified',
+        wallet: recipient.wallet_address ? `${recipient.wallet_address.substring(0, 4)}...${recipient.wallet_address.substring(recipient.wallet_address.length - 3)}` : 'No wallet',
+        salary: recipient.salary ? `$${recipient.salary}(USDT)` : '$0(USDT)',
+        status: recipient.status || 'inactive'
+      })) : []; 
 
         setEmployees(transformedEmployees);
         setTotalEmployees(transformedEmployees.length);
         setActiveEmployees(transformedEmployees.filter(e => e.status === 'active').length);
 
-        const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
-        const payrollContract = new ethers.Contract(contractAddress, abi, signer);
-        
-        const _orgDetails = await payrollContract.getOrganizationDetails(address);
-        const _orgContractAddress = await payrollContract.getOrganizationContract(address);
-       
-      } catch (error: any) {
-        console.error('Error fetching dashboard data:', error);
-        
-        // If the error is due to token expiration, remove the token
-        if (error.response?.status === 401) {
-          removeToken();
-          toast.error('Session expired. Please refresh the page.');
-        } else {
-          toast.error('Failed to load dashboard data');
-        }
-      } finally {
-        setLoading(false);
+      const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
+      const payrollContract = new ethers.Contract(contractAddress, abi, signer);
+      
+      const _orgDetails = await payrollContract.getOrganizationDetails(address);
+      const _orgContractAddress = await payrollContract.getOrganizationContract(address);
+     
+    } catch (error: unknown) {
+      console.error('Error fetching dashboard data:', error);
+      
+      // If the error is due to token expiration, remove the token
+      if (error && typeof error === 'object' && 'response' in error && 
+          error.response && typeof error.response === 'object' && 
+          'status' in error.response && error.response.status === 401) {
+        removeToken();
+        toast.error('Session expired. Please refresh the page.');
+      } else {
+        toast.error('Failed to load dashboard data');
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  }, [isConnected, address, walletProvider, chainId, balances.USDT, balances.USDC, balances.loading, getTokenBalances]);
 
+  useEffect(() => {
     fetchData();
-  }, [isConnected, address, walletProvider, chainId]);
+  }, [fetchData]);
 
   const handleRemoveEmployee = async (id: number) => {
     try {
@@ -120,10 +134,12 @@ export const EmployeesContent = () => {
       }
       
       toast.success('Recipient removed successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error removing recipient:', error);
       
-      if (error.response?.status === 401) {
+      if (error && typeof error === 'object' && 'response' in error && 
+          error.response && typeof error.response === 'object' && 
+          'status' in error.response && error.response.status === 401) {
         removeToken();
         toast.error('Session expired. Please refresh the page.');
       } else {

@@ -22,7 +22,7 @@ interface DashboardData {
   pendingRequests: number;
   pendingPayrollVolume: number;
   recentActivities: Array<{
-    id: number;
+    id: string;
     type: string;
     message: string;
     time: string;
@@ -33,7 +33,7 @@ interface DashboardData {
 // Default recent activities with icons
 const defaultRecentActivities = [
   { 
-    id: 1, 
+    id: '1', 
     type: 'Employee Added', 
     message: 'New employee was added', 
     time: '2 hours ago',
@@ -49,7 +49,7 @@ const defaultRecentActivities = [
     )
   },
   { 
-    id: 2, 
+    id: '2', 
     type: 'Payment Sent', 
     message: 'Payroll was processed successfully', 
     time: '1 day ago',
@@ -63,7 +63,7 @@ const defaultRecentActivities = [
     )
   },
   { 
-    id: 3, 
+    id: '3', 
     type: 'System Update', 
     message: 'System update was completed successfully', 
     time: '1 day ago',
@@ -111,10 +111,10 @@ export const DashboardContent = () => {
                 
                 token = authResponse.access;
                 // Assuming your authResponse includes expiresIn (in seconds)
-                storeToken(token, authResponse.expiresIn || 3600); // Default to 1 hour if not provided
+                storeToken(token as string, authResponse.expiresIn || 3600); // Default to 1 hour if not provided
             }
 
-          const [orgProfile, recipientProfiles, notifications] = await Promise.all([
+          const [_orgProfile, recipientProfiles, notifications] = await Promise.all([
             profileService.listOrganizationProfiles(token),
             profileService.getOrganizationRecipients(token),
             notificationsService.listNotifications(token)
@@ -130,8 +130,8 @@ export const DashboardContent = () => {
           const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
           const payrollContract = new ethers.Contract(contractAddress, abi, signer);
           
-          const orgDetails = await payrollContract.getOrganizationDetails(address);
-          const orgContractAddress = await payrollContract.getOrganizationContract(address);
+          const _orgDetails = await payrollContract.getOrganizationDetails(address);
+          const _orgContractAddress = await payrollContract.getOrganizationContract(address);
        
           const dashboardData: DashboardData = {
             // treasuryBalance: `$${parseFloat(treasuryBalance).toLocaleString()}`,
@@ -145,7 +145,7 @@ export const DashboardContent = () => {
                   notificationsList
                     .slice(0, 5)
                     .map((notification, index) => ({
-                      id: notification.id || index,
+                      id: notification.id?.toString() || index.toString(),
                       type: notification.type || 'Notification',
                       message: notification.message || 'System notification',
                       time: notification.created_at || 'Recently',
@@ -155,10 +155,10 @@ export const DashboardContent = () => {
           };
 
           setData(dashboardData);
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Error fetching dashboard data:', error);
           // If the error is due to token expiration, remove the token
-          if (error.response?.status === 401) {
+          if (error instanceof Error && 'response' in error && error.response?.status === 401) {
               removeToken();
               toast.error('Session expired. Please refresh the page.');
           } else {

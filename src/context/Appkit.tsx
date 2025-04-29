@@ -4,9 +4,7 @@ import { createAppKit } from "@reown/appkit/react";
 import { EthersAdapter } from "@reown/appkit-adapter-ethers";
 import { mainnet, sepolia, lisk, liskSepolia, base, baseSepolia } from "@reown/appkit/networks";
 import { projectId } from "@/config/Appkit";
-import WalletButton from "@/components/WalletButton";
 import { ReactNode } from "react";
-import Home from "@/app/page";
 
 
 if (!projectId) {
@@ -22,7 +20,6 @@ const metadata = {
 };
 
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 createAppKit({
   adapters: [new EthersAdapter()],
   projectId,

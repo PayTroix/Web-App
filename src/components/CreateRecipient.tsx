@@ -7,7 +7,7 @@ interface CreateRecipientProps {
 
 export default function CreateRecipient({ onClose }: CreateRecipientProps) {
   return (
-    <div className="bg-black text-white rounded-2xl p-8 shadow-xl border border-[#00468C]">
+    <div className="bg-black text-white rounded-2xl p-8 shadow-xl border border-[#00468C] inset-0, z-50">
       {/* Close Button */}
       <button
         onClick={onClose}
@@ -74,7 +74,7 @@ export default function CreateRecipient({ onClose }: CreateRecipientProps) {
 
       {/* Upload Section */}
       <label className="mt-8 cursor-pointer border border-gray-600 rounded-md p-6 flex flex-col items-center justify-center hover:bg-gray-800 transition">
-  <UploadCloud className="w-8 h-8 text-[#00468C] mb-2" />
+       <UploadCloud className="w-8 h-8 text-[#00468C] mb-2" />
   <p className="text-sm text-white">Upload .CSV File</p>
   <p className="text-xs text-orange-400 mt-1">Upload .csv and .xlsx files only</p>
   <input

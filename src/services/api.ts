@@ -47,8 +47,12 @@ interface RecipientProfile {
   id: number;
   name: string;
   email: string;
-  wallet_address: string;
+  recipient_ethereum_address: string;
   organization: number;
+  phone_number: string;
+  salary: number;
+  position: string;
+  status: string;
   created_at: string;
   updated_at: string;
 }

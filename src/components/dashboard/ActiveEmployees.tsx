@@ -20,7 +20,6 @@ const ActiveEmployees = ({ activeEmployees = 0, performancePercentage = 0 }) => 
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-white text-xl font-bold">{performancePercentage}%</span>
-          <p className="text-gray-500 text-xs">Performance</p>
         </div>
       </div>
       <div className="mt-2">

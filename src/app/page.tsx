@@ -1,5 +1,6 @@
 "use client"
 
+import CreateRecipient from "@/components/CreateRecipient"
 import CTASection from "@/components/landingPage/CTA"
 import Footer from "@/components/landingPage/Footer"
 import HeroSection from "@/components/landingPage/Hero"

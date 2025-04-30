@@ -9,6 +9,7 @@ import { profileService, web3AuthService } from '@/services/api';
 import { useAppKitNetworkCore, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import { useAppKitAccount } from '@reown/appkit/react';
 import { getToken } from '@/app/register/token';
+import abi from '@/services/abi.json';
 
 interface Recipient {
   name: string;
@@ -47,7 +48,7 @@ export default function CreateRecipient({ onClose, onSuccess }: CreateRecipientP
     setRecipients(updatedRecipients);
   };
 
-  const handleInputChange = (index: number, field: keyof Recipient, value: string) => {
+  const handleInputChange = (index: number, field: keyof Pick<Recipient, 'name' | 'email' | 'recipient_ethereum_address' | 'position' | 'salary'>, value: string) => {
     const updatedRecipients = [...recipients];
     updatedRecipients[index][field] = value;
     setRecipients(updatedRecipients);
@@ -102,7 +103,7 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
         );
 
         if (validData.length < parsedData.length) {
-          toast.warning(`Filtered out ${parsedData.length - validData.length} invalid rows`);
+          toast(`Filtered out ${parsedData.length - validData.length} invalid rows`, { icon: '⚠️' });
         }
 
         if (validData.length === 0) {
@@ -130,7 +131,7 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     );
     
     if (validData.length < csvData.length) {
-      toast.warning(`${csvData.length - validData.length} invalid entries were filtered out.`);
+      toast(`${csvData.length - validData.length} invalid entries were filtered out.`, { icon: '⚠️' });
     }
     
     if (validData.length === 0) {
@@ -223,17 +224,26 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
       const orgResponse = await profileService.listOrganizationProfiles(token);
       console.log('Organization response:', orgResponse); // Debug log
       const organizationId = orgResponse[0].id;
+
+      // Get signer
+      const provider = new ethers.BrowserProvider(walletProvider, chainId);
+      const signer = await provider.getSigner();
+      console.log('Signer obtained:', signer); // Debug log
   
-      const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS;
+      const factoryContractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS;
+      if (!factoryContractAddress) {
+        throw new Error('Factory contract address not found in environment variables');
+      }
+      console.log('Factory contract address:', factoryContractAddress); // Debug log
+
+      const factoryContract = new ethers.Contract(factoryContractAddress, abi, provider);
+      const contractAddress = await factoryContract.getOrganizationContract(address);
+
       if (!contractAddress || !ethers.isAddress(contractAddress)) {
         throw new Error('Invalid contract address');
       }
       console.log('Contract address:', contractAddress); // Debug log
   
-      // Get signer
-      const provider = new ethers.BrowserProvider(walletProvider, chainId);
-      const signer = await provider.getSigner();
-      console.log('Signer obtained:', signer); // Debug log
   
       // Prepare recipients data
       const formattedRecipients = recipients.map(recipient => ({

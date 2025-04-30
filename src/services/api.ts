@@ -74,7 +74,7 @@ interface OrganizationProfileData {
 interface RecipientProfileData {
   name: string;
   email: string;
-  wallet_address: string;
+  recipient_ethereum_address: string;
   organization: number;
 }
 

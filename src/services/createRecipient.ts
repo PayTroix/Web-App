@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { profileService } from '@/services/api';
 import toast from 'react-hot-toast';
-import abi from '@/services/abi.json';
+import orgAbi from '@/services/organization_abi.json';
 
 interface CreateRecipientParams {
   name: string;
@@ -77,7 +77,7 @@ export async function createRecipientAtomic({
     throw new Error('No contract found at the specified address');
   }
 
-  const payrollContract = new ethers.Contract(contractAddress, abi, signer);
+  const payrollContract = new ethers.Contract(contractAddress, orgAbi, signer);
   let backendRecipientId: number | null = null;
   let transactionHash: string = '';
 
@@ -218,7 +218,7 @@ export async function createBatchRecipientsAtomic({
     throw new Error('No contract found at the specified address');
   }
 
-  const payrollContract = new ethers.Contract(contractAddress, abi, signer);
+  const payrollContract = new ethers.Contract(contractAddress, orgAbi, signer);
 
   // Validate all recipient addresses
   for (const recipient of recipients) {

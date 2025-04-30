@@ -158,7 +158,7 @@ export const DashboardContent = () => {
         } catch (error: unknown) {
           console.error('Error fetching dashboard data:', error);
           // If the error is due to token expiration, remove the token
-          if (error instanceof Error && 'response' in error && error.response?.status === 401) {
+          if (error instanceof Error && 'response' in error && (error.response as { status?: number })?.status === 401) {
               removeToken();
               toast.error('Session expired. Please refresh the page.');
           } else {

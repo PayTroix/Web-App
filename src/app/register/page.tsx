@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import { ethers } from 'ethers';
-import { initPayrollContract } from '@/services/contractInteraction';
 import { profileService, web3AuthService } from '@/services/api';
 import toast from 'react-hot-toast';
+import abi from '@/services/abi.json';
+import WalletButton from '@/components/WalletButton';
+import { storeToken } from './token';
 
 function RegisterPage() {
   const router = useRouter();
@@ -51,6 +53,8 @@ const handleSubmit = async (e: React.FormEvent) => {
       };
       const authResponse = await web3AuthService.login(authData);
       const token = authResponse.access;
+      storeToken(token);
+
 
       // Prepare organization data
       const orgData = {
@@ -59,9 +63,19 @@ const handleSubmit = async (e: React.FormEvent) => {
         organization_address: `${formData.get('address1')}, ${formData.get('address2')}, ${formData.get('state')}, ${formData.get('country')}`
       };
 
-      // Initialize contract
+      
       const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
-      const payrollContract = initPayrollContract(contractAddress, provider, signer);
+      if (!ethers.isAddress(contractAddress)) {
+        throw new Error('Invalid contract address');
+      }
+
+      const payrollContract = new ethers.Contract(contractAddress, abi, signer);
+
+      // Add code to verify the contract exists
+      const code = await provider.getCode(contractAddress);
+      if (code === '0x') {
+        throw new Error('No contract found at the specified address');
+      }
 
       // Start atomic transaction flow
       let backendOrgId: string | null = null;
@@ -69,28 +83,80 @@ const handleSubmit = async (e: React.FormEvent) => {
       try {
         // 4. First create backend record
         const organizationResponse = await profileService.createOrganizationProfile(orgData, token);
+        // @ts-expect-error - ID type mismatch between backend and frontend
         backendOrgId = organizationResponse.id;
 
-        // 5. Then create on-chain organization
-        const tx = await payrollContract.createOrganization(orgData.name, 'Organization description');
+        console.log("Creating organization with params:", orgData.name, 'Organization description');
+        
+       
+        let estimatedGas;
+        try {
+          estimatedGas = await payrollContract.createOrganization.estimateGas(
+            orgData.name, 
+            'Organization description'
+          );
+          console.log("Gas estimation successful:", estimatedGas);
+        } catch (estimateError: unknown) {
+          console.error("Gas estimation failed:", estimateError);
+          const errorMessage = estimateError instanceof Error 
+            ? estimateError.message 
+            : typeof estimateError === 'object' && estimateError !== null && 'reason' in estimateError
+              ? String(estimateError.reason)
+              : 'Unknown error during gas estimation';
+          throw new Error(`Failed to estimate gas: ${errorMessage}`);
+        };
+        
+        // Then send the transaction with the estimated gas (plus buffer)
+        const tx = await payrollContract.createOrganization(
+          orgData.name, 
+          'Organization description',
+          { 
+            gasLimit: (estimatedGas * BigInt(12)) / BigInt(10) // Add 20% buffer
+          }
+        );
+        
+        console.log("Transaction sent:", tx.hash);
         const receipt = await tx.wait();
-
-        if (receipt.status !== 1) {
-          throw new Error('Transaction failed on chain');
+        console.log("Transaction confirmed:", receipt);
+        
+        if (!receipt || receipt.status !== 1) {
+          // Try to get more detailed error information
+          const txDetails = await provider.getTransaction(tx.hash);
+          throw new Error(`Transaction failed with status ${receipt.status}. Transaction: ${JSON.stringify(txDetails)}`);
         }
-
         toast.success('Organization created successfully!');
         router.push('/dashboard');
-      } catch (error) {
+      } catch (error: unknown) {
         // Rollback: Delete backend record if chain transaction failed
         if (backendOrgId) {
+          // @ts-expect-error - ID type mismatch between backend and frontend
           await profileService.deleteOrganizationProfile(backendOrgId, token).catch(console.error);
         }
+        
+        // Type guard for ethers.js errors
+        if (error && typeof error === 'object' && 'code' in error) {
+          const ethersError = error as { code: string; reason?: string };
+          
+          switch (ethersError.code) {
+            case 'CALL_EXCEPTION':
+              console.error('Contract call exception:', error);
+              throw new Error(`Contract error: ${ethersError.reason || 'Unknown contract error'}`);
+            case 'INSUFFICIENT_FUNDS':
+              throw new Error('Insufficient funds for transaction');
+            case 'NETWORK_ERROR':
+              throw new Error('Network error occurred');
+            default:
+              throw error;
+          }
+        }
+        
+        // If it's not an ethers.js error, throw the original error
         throw error;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Registration error:', error);
-      toast.error(error.message || 'Failed to register organization');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to register organization';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -116,10 +182,11 @@ const handleSubmit = async (e: React.FormEvent) => {
               <Image src="/logo.png" alt="Logo" width={120} height={120} />
           </Link>
         </div>
-        <div className="flex items-center text-blue-400">
+        {/* <div className="flex items-center text-blue-400">
           <span className="mr-2">✓</span>
-          <span className="text-sm text-gray-400">0xB9.....4aba</span>
-        </div>
+          <span className="text-sm text-gray-400">{displayAddress(address)}</span>
+        </div> */}
+        <WalletButton />
       </header>
 
       {/* Main Content */}
@@ -191,6 +258,8 @@ const handleSubmit = async (e: React.FormEvent) => {
                   className="bg-black border border-gray-700 rounded p-3 text-gray-400 w-full appearance-none focus:outline-none focus:border-blue-500"
                 >
                   <option value="">Select country</option>
+                  <option value="ng">Nigeria</option>
+                  <option value="gh">Ghana</option>
                   <option value="us">United States</option>
                   <option value="ca">Canada</option>
                   <option value="uk">United Kingdom</option>

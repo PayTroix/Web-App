@@ -1,32 +1,29 @@
-'use client'
+"use client";
 
-import { wagmiAdapter, projectId } from '@/config/Appkit'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createAppKit } from '@reown/appkit/react'
-import { mainnet, sepolia, lisk, liskSepolia } from '@reown/appkit/networks'
-import React, { type ReactNode } from 'react'
-import { cookieToInitialState, WagmiProvider, type Config } from 'wagmi'
+import { createAppKit } from "@reown/appkit/react";
+import { EthersAdapter } from "@reown/appkit-adapter-ethers";
+import { mainnet, sepolia, lisk, liskSepolia, base, baseSepolia } from "@reown/appkit/networks";
+import { projectId } from "@/config/Appkit";
+import { ReactNode } from "react";
 
-// Set up queryClient
-const queryClient = new QueryClient()
 
 if (!projectId) {
   throw new Error('Project ID is not defined')
 }
 
-// Set up metadata
+// 2. Create a metadata object
 const metadata = {
   name: 'PayTroix - Web3 Payroll Solution',
   description: 'Payroll Reinvented for Web3 - Instant, Secure, and Borderless',
-  url: 'https://appkitexampleapp.com', // origin must match your domain & subdomain
-  icons: ['https://avatars.githubusercontent.com/u/179229932']
-}
+  url: "https://mywebsite.com", // origin must match your domain & subdomain
+  icons: ["https://avatars.mywebsite.com/"],
+};
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const modal = createAppKit({
-  adapters: [wagmiAdapter],
+
+createAppKit({
+  adapters: [new EthersAdapter()],
   projectId,
-  networks: [mainnet, sepolia, lisk, liskSepolia],
+  networks: [mainnet, sepolia, lisk, liskSepolia, base, baseSepolia],
   defaultNetwork: liskSepolia,
   metadata: metadata,
   features: {
@@ -36,14 +33,10 @@ const modal = createAppKit({
   }
 })
 
-function ContextProvider({ children, cookies }: { children: ReactNode; cookies: string | null }) {
-  const initialState = cookieToInitialState(wagmiAdapter.wagmiConfig as Config, cookies)
-
+export const AppKit = ({ children }: { children: ReactNode }) => {
   return (
-    <WagmiProvider config={wagmiAdapter.wagmiConfig as Config} initialState={initialState}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </WagmiProvider>
-  )
+    <>
+      {children}
+    </>
+  );
 }
-
-export default ContextProvider

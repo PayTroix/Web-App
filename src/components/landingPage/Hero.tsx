@@ -1,56 +1,130 @@
 'use client';
-import Link from 'next/link';
 import Header from './Header';
 import { useRouter } from 'next/navigation';
-import { useAppKitAccount } from "@reown/appkit/react";
-import { useEffect, useState } from 'react';
+import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider, type Provider } from "@reown/appkit/react";
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { web3AuthService } from '../../services/api';
+import Link from 'next/link';
+import { getToken, removeToken, storeToken } from '@/app/register/token';
+import { ethers } from 'ethers';
+
+type AuthResponse = {
+  access: string;
+  refresh?: string;
+  user?: {
+    user_type: 'organization' | 'recipient';
+  };
+};
+
+type VerifyAddressResponse = {
+  exists: boolean;
+  user_type?: 'organization' | 'recipient';
+};
 
 export default function HeroSection() {
     const router = useRouter();
     const { address, isConnected } = useAppKitAccount();
     const [isCheckingUser, setIsCheckingUser] = useState(false);
+    const { chainId } = useAppKitNetworkCore();
+    const { walletProvider } = useAppKitProvider<Provider>('eip155');
 
-    // Function to check user type and redirect accordingly
-    const checkUserAndRedirect = async () => {
-      if (!address) return;
+    const login = async (): Promise<boolean> => {
+      if (!isConnected || !address) {
+        toast.error('Please connect your wallet first');
+        return false;
+      }
       
       setIsCheckingUser(true);
       try {
-        const nonceResponse = await web3AuthService.getNonce(address); // Check if nonce exists for the address or create new one
+        const { nonce } = await web3AuthService.getNonce(address);
+        const message = `I'm signing my one-time nonce: ${nonce}`;
+        const provider = new ethers.BrowserProvider(walletProvider, chainId);
+        const signer = await provider.getSigner();
+        const signature = await signer.signMessage(message);
+    
+        const authData = {
+          address: address,
+          signature: signature,
+        };
         
-       const isVerified = await web3AuthService.verifyAddress(address); // Verify the address
-        if (!isVerified.exists == false) {
-          toast.error('Address not verified');
-          router.push('/register');
-          return;
-        }
-
-        const userType = nonceResponse.user_type;
+        const authResponse: AuthResponse = await web3AuthService.login(authData);
+        storeToken(authResponse.access);
+        return true;
+      } catch (error: unknown) {
+        console.error('Login error:', error);
         
-        if (userType === 'organization') {
-          router.push('/dashboard');
-        } else if (userType === 'recipient') {
-          router.push('/recipient-dashboard');
+        if (typeof error === 'object' && error !== null && 'response' in error) {
+          const err = error as { response?: { data?: { code?: string } } };
+          if (err.response?.data?.code === 'token_not_valid') {
+            removeToken(); 
+            toast.error('Your session has expired. Please sign in again.');
+          }
         } else {
-          router.push('/register');
+          toast.error('An error occurred during login. Please try again.');
         }
-      } catch (error) {
-        console.error('Error checking user:', error);
-        router.push('/register');
+        return false;
       } finally {
         setIsCheckingUser(false);
       }
     };
 
-    useEffect(() => {
-      if (isConnected && address) {
-        checkUserAndRedirect();
+    const checkUserAndRedirect = async (): Promise<void> => {
+      if (!address) {
+        toast.error('Please connect your wallet first');
+        return;
       }
-    }, [isConnected, address]);
+      
+      setIsCheckingUser(true);
+      try {
+        const verifyResponse: VerifyAddressResponse = await web3AuthService.verifyAddress(address);
+        
+        if (!verifyResponse.exists) {
+          toast.error('Address not registered');
+          router.push('/register');
+          return;
+        }
 
-    const handleGetStarted = async () => {
+        let token = getToken();
+        if (!token) {
+          const loginSuccess = await login();
+          if (!loginSuccess) return;
+          token = getToken();
+        }
+
+        if (!token) {
+          toast.error('Authentication failed');
+          return;
+        }
+
+        // Assuming you have a getUser endpoint that returns user data
+        const user = await web3AuthService.getUser(token);
+        const userType = user.user_type;
+        
+        if (userType === 'organization') {
+          router.push('/dashboard');
+        } else if (userType === 'recipient') {
+          router.push('/recipient-dashboard');
+        }
+      } catch (error: unknown) {
+        console.error('Error checking user:', error);
+        
+        if (typeof error === 'object' && error !== null && 'response' in error) {
+          const err = error as { response?: { data?: { code?: string; exists?: boolean } } };
+          if (err.response?.data?.code === 'token_not_valid' || err.response?.data?.exists === false) {
+            removeToken();
+            toast.error('Your session has expired. Please sign in again.');
+            await login();
+          }
+        } else {
+          toast.error('An error occurred. Please try again.');
+        }
+      } finally {
+        setIsCheckingUser(false);
+      }
+    };
+
+    const handleGetStarted = async (): Promise<void> => {
       if (!isConnected) {
         toast.error('Please connect your wallet first');
         return;
@@ -58,6 +132,7 @@ export default function HeroSection() {
       
       await checkUserAndRedirect();
     };
+
   return (
     <div
       className="min-h-screen bg-cover bg-center bg-no-repeat text-white p-6"
@@ -67,7 +142,7 @@ export default function HeroSection() {
       }}
     >
       
-   <Header/>
+      <Header/>
       {/* Hero Content */}
       <div className="flex flex-col items-center justify-center text-center px-4 md:px-20 pt-20">
         <h1 className="text-3xl md:text-5xl font-bold leading-tight max-w-4xl">
@@ -82,20 +157,18 @@ export default function HeroSection() {
           automated tax filing, and detailed reporting.
         </p>
         <div className="mt-8 flex space-x-16">
-          {/* <Link href="/register"> */}
-          {/* <button className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold">
-            Get Started
-          </button> */}
-          {/* </Link> */}
           <button 
-            onClick={() => handleGetStarted()}
+            onClick={handleGetStarted}
             className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold"
           >
             {isCheckingUser ? 'Checking...' : 'Get Started'}
           </button>
+          <Link href="#CTA">
           <button className="border border-white hover:border-blue-500 px-2 py-2 rounded-lg font-semibold">
             Join Waitlist
           </button>
+          </Link>
+          
         </div>
 
         {/* Stats */}

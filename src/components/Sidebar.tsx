@@ -4,6 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { JSX } from 'react/jsx-runtime';
+import WalletButton from './WalletButton';
+import CreateRecipient from './CreateRecipient';
 
 interface NavItem {
   label: string;
@@ -12,21 +14,46 @@ interface NavItem {
 }
 
 export const Header: FC = () => {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
   return (
-    <header className="flex justify-between items-center px-6 py-4 bg-black h-20">
-      <div className="flex items-center">
-        
-        <Image src="/logo.png" alt="Logo" width={120} height={120} />
-      </div>
-      <div className="flex items-center text-blue-500">
-        <span className="text-sm mr-2">0xB9....4aba</span>
-        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
+    <>
+      <header className="flex justify-between items-center px-6 py-4 bg-black h-20">
+        <div className="flex items-center">
+          <Image src="/logo.png" alt="Logo" width={120} height={120} />
         </div>
-      </div>
-    </header>
+        <div className="flex items-center text-blue-500 gap-6">
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => setShowCreateModal(true)}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className="text-blue-500">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span className="text-sm mr-2 text-white">Create Recipient</span>
+          </div>
+
+          <div className='flex items-center gap-2'>
+            <WalletButton />
+          </div>
+        </div>
+      </header>
+
+      {/* Modal Overlay */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center px-4">
+          <div className="relative w-full max-w-4xl">
+            <CreateRecipient onClose={() => setShowCreateModal(false)} />
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

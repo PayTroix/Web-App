@@ -1,6 +1,5 @@
 // components/CTASection.jsx
 import React, { useState } from 'react';
-// import Link from 'next/link';
 import { waitlistService } from '../../services/api';
 
 const CTASection = () => {
@@ -33,7 +32,7 @@ const CTASection = () => {
   };
 
   return (
-    <div className="relative py-16 overflow-hidden">
+    <div id="CTA" className="relative py-16 overflow-hidden">
       {/* Background Image */}
       <div 
         className="absolute inset-0 z-0" 

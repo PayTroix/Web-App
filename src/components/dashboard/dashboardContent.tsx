@@ -1,22 +1,41 @@
 'use client';
-import React from 'react';
-import Link from 'next/link';
+import React, { useEffect, useState } from 'react';
 import LiveLineChart from './LiveChart';
+import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
+import { ethers } from 'ethers';
+import abi from '@/services/abi.json';
+import { notificationsService, profileService, web3AuthService } from '@/services/api';
+import toast from 'react-hot-toast';
 
-// Mock data for recent payments
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const recentPayments = [
-  { id: 1, name: 'Jane Doe', amount: '$4,000', date: 'July 15, 2023', status: 'Completed' },
-  { id: 2, name: 'John Smith', amount: '$3,800', date: 'July 15, 2023', status: 'Pending' },
-  { id: 3, name: 'Alice Johnson', amount: '$4,200', date: 'July 15, 2023', status: 'Completed' },
-];
+import WalletBalance from './WalletBalance';
+import TotalEmployees from './TotalEmployees';
+import ActiveEmployees from './ActiveEmployees';
+import RecentActivity from './RecentActivity';
+import { PendingRequest, PendingPayrollVolume } from './PendingRequest';
+import { getToken, isTokenExpired, removeToken, storeToken } from '@/app/register/token';
 
-// Mock data for recent activities
-const recentActivities = [
+interface DashboardData {
+  // treasuryBalance: string;
+  totalEmployees: number;
+  activeEmployees: number;
+  performancePercentage: number;
+  pendingRequests: number;
+  pendingPayrollVolume: number;
+  recentActivities: Array<{
+    id: string;
+    type: string;
+    message: string;
+    time: string;
+    icon: React.ReactNode;
+  }>;
+}
+
+// Default recent activities with icons
+const defaultRecentActivities = [
   { 
-    id: 1, 
+    id: '1', 
     type: 'Employee Added', 
-    message: 'Jane Doe was Added to the as a developer', 
+    message: 'New employee was added', 
     time: '2 hours ago',
     icon: (
       <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500">
@@ -30,9 +49,9 @@ const recentActivities = [
     )
   },
   { 
-    id: 2, 
+    id: '2', 
     type: 'Payment Sent', 
-    message: 'Payroll for April was proceeded successfully', 
+    message: 'Payroll was processed successfully', 
     time: '1 day ago',
     icon: (
       <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-500">
@@ -44,9 +63,9 @@ const recentActivities = [
     )
   },
   { 
-    id: 3, 
+    id: '3', 
     type: 'System Update', 
-    message: 'Payroll for April was proceeded successfully', 
+    message: 'System update was completed successfully', 
     time: '1 day ago',
     icon: (
       <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-500">
@@ -62,83 +81,120 @@ const recentActivities = [
 ];
 
 export const DashboardContent = () => {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { address, isConnected } = useAppKitAccount();
+  const { chainId } = useAppKitNetwork();
+  const { walletProvider } = useAppKitProvider<Provider>('eip155');
+
+  useEffect(() => {
+    const fetchData = async () => {
+        if (!isConnected || !address) return;
+        
+        setLoading(true);
+        try {
+            const provider = new ethers.BrowserProvider(walletProvider, chainId);
+            const signer = await provider.getSigner();
+            
+            let token = getToken();
+            
+            // If no token or token is expired, get a new one
+            if (!token || isTokenExpired()) {
+                const { nonce } = await web3AuthService.getNonce(address);
+                const message = `I'm signing my one-time nonce: ${nonce}`;
+                const signature = await signer.signMessage(message);
+                
+                const authResponse = await web3AuthService.login({
+                    address,
+                    signature
+                });
+                
+                token = authResponse.access;
+                // Assuming your authResponse includes expiresIn (in seconds)
+                storeToken(token as string, authResponse.expiresIn || 3600); // Default to 1 hour if not provided
+            }
+
+          const [_orgProfile, recipientProfiles, notifications] = await Promise.all([
+            profileService.listOrganizationProfiles(token),
+            profileService.getOrganizationRecipients(token),
+            notificationsService.listNotifications(token)
+          ]);
+
+          // Safely access recipients - handle potential undefined values
+          const recipients = recipientProfiles?.recipients || [];
+          const recipientsLength = Array.isArray(recipients) ? recipients.length : 0;
+          
+          // Safely access notifications - handle potential undefined values
+          const notificationsList = Array.isArray(notifications) ? notifications : [];
+
+          const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
+          const payrollContract = new ethers.Contract(contractAddress, abi, signer);
+          
+          const _orgDetails = await payrollContract.getOrganizationDetails(address);
+          const _orgContractAddress = await payrollContract.getOrganizationContract(address);
+       
+          const dashboardData: DashboardData = {
+            // treasuryBalance: `$${parseFloat(treasuryBalance).toLocaleString()}`,
+            totalEmployees: recipientsLength,
+            activeEmployees: recipientsLength,
+            performancePercentage: recipientsLength > 0 ? 
+              Math.round((recipientsLength / recipientsLength) * 100) : 0,
+            pendingRequests: 6, // Replace with actual data
+            pendingPayrollVolume: 6, // Replace with actual data
+            recentActivities: recipientsLength > 0 ? 
+                  notificationsList
+                    .slice(0, 5)
+                    .map((notification, index) => ({
+                      id: notification.id?.toString() || index.toString(),
+                      type: notification.type || 'Notification',
+                      message: notification.message || 'System notification',
+                      time: notification.created_at || 'Recently',
+                      icon: defaultRecentActivities[Math.min(index, defaultRecentActivities.length - 1)].icon 
+                    }))
+                  : []
+          };
+
+          setData(dashboardData);
+        } catch (error: unknown) {
+          console.error('Error fetching dashboard data:', error);
+          // If the error is due to token expiration, remove the token
+          if (error instanceof Error && 'response' in error && (error.response as { status?: number })?.status === 401) {
+              removeToken();
+              toast.error('Session expired. Please refresh the page.');
+          } else {
+              toast.error('Failed to load dashboard data');
+          }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchData();
+  }, [isConnected, address, walletProvider, chainId]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+  
   return (
     <div className="flex flex-col gap-6">
       {/* Summary Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
         {/* Treasury Wallet Balance */}
-        <div className="bg-black border border-[#2C2C2C] rounded-lg p-6 flex flex-col col-span-3 relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <div className="bg-white p-3 rounded-full">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="blue" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-              </svg>
-            </div>
-            <div className="text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </div>
-          </div>
-          <p className="text-gray-400 mt-16">Treasury wallet balance</p>
-          <div className="flex items-center gap-2">
-            <h2 className="text-white text-4xl font-semibold mt-2">$345,840</h2>
-            <p className="text-gray-400 text-sm">(USDT)</p>
-          </div>
-        </div>
+        <WalletBalance />
 
         {/* Total Employees */}
-        <div className="bg-black border  border-[#2C2C2C] rounded-lg p-6 flex flex-col col-span-2 relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <div className="bg-white p-3 rounded-full">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="blue" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            </div>
-            <div className="text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </div>
-          </div>
-         <div className='flex items-center mt-20 '>
-         <h2 className="text-white text-3xl font-semibold mt-2">54</h2>
-         <p className="text-gray-400 mt-3">Total Employees</p>
-         
-         </div>
-        </div>
+        <TotalEmployees totalEmployees={data ? data.totalEmployees : 0} />
 
         {/* Active Employees */}
-        <div className="bg-black border border-[#2C2C2C] rounded-lg p-6 flex flex-col items-center justify-center relative">
-          <div className="relative w-24 h-24">
-            <svg viewBox="0 0 120 120" className="w-full h-full">
-              <circle cx="60" cy="60" r="54" fill="none" stroke="white" strokeWidth="6" />
-              <circle 
-                cx="60" 
-                cy="60" 
-                r="54" 
-                fill="none" 
-                stroke="#3b82f6" 
-                strokeWidth="8" 
-                strokeDasharray="339.3" 
-                strokeDashoffset="84.825" // 25% of the circumference
-                transform="rotate(-90 60 60)"
-              />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-white text-xl font-bold">75%</span>
-              <p className="text-gray-500 text-xs">Performance</p>
-            </div>
-          </div>
-          <div className="mt-2">
-            <h2 className="text-white text-4xl font-semibold text-center">41</h2>
-            <p className="text-gray-500 text-sm text-center">Active Employee</p>
-          </div>
-        </div>
+        <ActiveEmployees 
+          activeEmployees={data?.activeEmployees || 0} 
+          performancePercentage={data?.performancePercentage || 0} 
+        />
       </div>
 
       {/* Main Dashboard Content */}
@@ -149,84 +205,18 @@ export const DashboardContent = () => {
         </div>
 
         {/* Recent Activity Panel */}
-        <div className="bg-black border border-[#2C2C2C] rounded-lg p-6 col-span-2">
-          <h2 className="text-white text-lg font-medium mb-6">Recent Activity</h2>
-          
-          <div className="space-y-6">
-            {recentActivities.map(activity => (
-              <div key={activity.id} className="flex gap-4">
-                {activity.icon}
-                <div>
-                  <h3 className="text-white text-sm font-medium">{activity.type}</h3>
-                  <p className="text-gray-400 text-sm">{activity.message}</p>
-                  <span className="text-gray-500 text-xs">{activity.time}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="mt-6 pt-4">
-            <Link href="/activity" className="text-blue-500 text-sm flex items-center">
-              View all activity
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </Link>
-          </div>
-        </div>
+        <RecentActivity activities={data ? data.recentActivities : []} />
       </div>
 
-      {/* Bottom Panels */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Salary Advancement */}
-        <div className="bg-black border border-[#2C2C2C] rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="bg-white p-3 rounded-full mr-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="blue" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                </svg>
-              </div>
-              <h2 className="text-white text-lg font-medium">Salary Advancement</h2>
-            </div>
-            <div className="text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </div>
-          </div>
-          <div className="mt-6">
-            <h2 className="text-white text-4xl font-semibold">6</h2>
-            <p className="text-gray-500 text-sm">Pending Request</p>
-          </div>
-        </div>
 
-        {/* Pending Payroll Volume */}
-        <div className="bg-black border border-[#2C2C2C] rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="bg-white p-3 rounded-full mr-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="blue" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                </svg>
-              </div>
-            </div>
-            <div className="text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </div>
-          </div>
-          <div className="mt-6">
-            <h2 className="text-white text-4xl font-semibold">6</h2>
-            <p className="text-gray-500 text-sm">Pending Payroll volume</p>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <PendingRequest count={data?.pendingRequests || 0} />
+
+        <PendingPayrollVolume volume={data?.pendingPayrollVolume || 0} />
       </div>
     </div>
   );
 };
 
-export default DashboardContent; 
+export default DashboardContent;

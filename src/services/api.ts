@@ -1,31 +1,3 @@
-// import axios from 'axios';
-
-// // Base API URL for our backend service
-// const baseURL = 'https://backend-lk8r.onrender.com';
-
-// Create axios instance with base configuration
-// const apiClient = axios.create({
-//   baseURL,
-//   headers: {
-//     'Content-Type': 'application/json',
-//   },
-// });
-
-// // Waitlist API service
-// export const waitlistService = {
-  
-//   joinWaitlist: async (email: string) => {
-//     try {
-//       const response = await apiClient.post('/api/v1/waitlist/waitlist/', {
-//         email,
-//       });
-//       return response.data;
-//     } catch (error) {
-//       console.error('Error joining waitlist:', error);
-//       throw error;
-//     }
-//   },
-// };
 import axios from 'axios';
 
 // Base API URL for our backend service
@@ -44,12 +16,84 @@ const setAuthHeader = (token: string) => {
   apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 };
 
+interface Notification {
+  id: number;
+  type: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  user: number;
+}
+
+interface PatchedNotification {
+  type?: string;
+  message?: string;
+  is_read?: boolean;
+}
+
+interface OrganizationProfile {
+  id: number;
+  name: string;
+  email: string;
+  organization_address: string;
+  organization_phone?: string;
+  website?: string;
+  recipients: RecipientProfile[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface RecipientProfile {
+  id: number;
+  name: string;
+  email: string;
+  recipient_ethereum_address: string;
+  organization: number;
+  phone_number: string;
+  salary: number;
+  position: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface WaitlistEntry {
+  id: number;
+  email: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface OrganizationProfileData {
+  name: string;
+  email: string;
+  organization_address: string;
+  website?: string;
+}
+
+interface RecipientProfileData {
+  name: string;
+  email: string;
+  recipient_ethereum_address: string;
+  organization: number;
+}
+
+interface WaitlistEntryData {
+  email: string;
+}
+
+interface UserData {
+  id: number;
+  username: string;
+  wallet_address: string;
+  user_type: string;
+}
 // Profile API services
 export const profileService = {
   // Organization Profile Endpoints
-  listOrganizationProfiles: async (token: string) => {
+  listOrganizationProfiles: async (token: string | null): Promise<OrganizationProfile[]> => {
     try {
-      setAuthHeader(token);
+      if (token) setAuthHeader(token);
       const response = await apiClient.get('/api/v1/profile/organization-profile/');
       return response.data;
     } catch (error) {
@@ -58,7 +102,7 @@ export const profileService = {
     }
   },
 
-  createOrganizationProfile: async (data: any, token: string) => {
+  createOrganizationProfile: async (data: OrganizationProfileData, token: string): Promise<OrganizationProfile> => {
     try {
       setAuthHeader(token);
       const response = await apiClient.post('/api/v1/profile/organization-profile/', data);
@@ -69,7 +113,7 @@ export const profileService = {
     }
   },
 
-  getOrganizationProfile: async (id: number, token: string) => {
+  getOrganizationProfile: async (id: number, token: string): Promise<OrganizationProfile> => {
     try {
       setAuthHeader(token);
       const response = await apiClient.get(`/api/v1/profile/organization-profile/${id}/`);
@@ -80,7 +124,7 @@ export const profileService = {
     }
   },
 
-  updateOrganizationProfile: async (id: number, data: any, token: string) => {
+  updateOrganizationProfile: async (id: number, data: OrganizationProfileData, token: string): Promise<OrganizationProfile> => {
     try {
       setAuthHeader(token);
       const response = await apiClient.put(`/api/v1/profile/organization-profile/${id}/`, data);
@@ -91,7 +135,7 @@ export const profileService = {
     }
   },
 
-  partialUpdateOrganizationProfile: async (id: number, data: any, token: string) => {
+  partialUpdateOrganizationProfile: async (id: number, data: Partial<OrganizationProfileData>, token: string): Promise<OrganizationProfile> => {
     try {
       setAuthHeader(token);
       const response = await apiClient.patch(`/api/v1/profile/organization-profile/${id}/`, data);
@@ -102,19 +146,28 @@ export const profileService = {
     }
   },
 
-  deleteOrganizationProfile: async (id: any, token: string) => {
+  deleteOrganizationProfile: async (id: number, token: string): Promise<void> => {
     try {
       setAuthHeader(token);
-      const response = await apiClient.delete(`/api/v1/profile/organization-profile/${id}/`);
-      return response.data;
+      await apiClient.delete(`/api/v1/profile/organization-profile/${id}/`);
     } catch (error) {
       console.error('Error deleting organization profile:', error);
       throw error;
     }
   },
+  getOrganizationRecipients: async (token: string | null): Promise<OrganizationProfile> => {
+    try {
+      if (token) setAuthHeader(token);
+      const response = await apiClient.get('/api/v1/profile/organization-profile/get_organization_recipients/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching organization recipients:', error);
+      throw error;
+    }
+  },
 
   // Recipient Profile Endpoints
-  listRecipientProfiles: async (token: string) => {
+  listRecipientProfiles: async (token: string): Promise<RecipientProfile[]> => {
     try {
       setAuthHeader(token);
       const response = await apiClient.get('/api/v1/profile/recipient-profile/');
@@ -125,7 +178,7 @@ export const profileService = {
     }
   },
 
-  createRecipientProfile: async (data: any, token: string) => {
+  createRecipientProfile: async (data: RecipientProfileData, token: string): Promise<RecipientProfile> => {
     try {
       setAuthHeader(token);
       const response = await apiClient.post('/api/v1/profile/recipient-profile/', data);
@@ -136,7 +189,7 @@ export const profileService = {
     }
   },
 
-  getRecipientProfile: async (id: number, token: string) => {
+  getRecipientProfile: async (id: number, token: string): Promise<RecipientProfile> => {
     try {
       setAuthHeader(token);
       const response = await apiClient.get(`/api/v1/profile/recipient-profile/${id}/`);
@@ -147,7 +200,7 @@ export const profileService = {
     }
   },
 
-  updateRecipientProfile: async (id: number, data: any, token: string) => {
+  updateRecipientProfile: async (id: number, data: RecipientProfileData, token: string): Promise<RecipientProfile> => {
     try {
       setAuthHeader(token);
       const response = await apiClient.put(`/api/v1/profile/recipient-profile/${id}/`, data);
@@ -158,7 +211,7 @@ export const profileService = {
     }
   },
 
-  partialUpdateRecipientProfile: async (id: number, data: any, token: string) => {
+  partialUpdateRecipientProfile: async (id: number, data: Partial<RecipientProfileData>, token: string): Promise<RecipientProfile> => {
     try {
       setAuthHeader(token);
       const response = await apiClient.patch(`/api/v1/profile/recipient-profile/${id}/`, data);
@@ -169,18 +222,17 @@ export const profileService = {
     }
   },
 
-  deleteRecipientProfile: async (id: number, token: string) => {
+  deleteRecipientProfile: async (id: number, token: string): Promise<void> => {
     try {
       setAuthHeader(token);
-      const response = await apiClient.delete(`/api/v1/profile/recipient-profile/${id}/`);
-      return response.data;
+      await apiClient.delete(`/api/v1/profile/recipient-profile/${id}/`);
     } catch (error) {
       console.error('Error deleting recipient profile:', error);
       throw error;
     }
   },
 
-  batchCreateRecipientProfiles: async (id: number, data: any, token: string) => {
+  batchCreateRecipientProfiles: async (id: number, data: RecipientProfileData[], token: string): Promise<RecipientProfile[]> => {
     try {
       setAuthHeader(token);
       const response = await apiClient.post(`/api/v1/profile/recipient-profile/${id}/batch_create/`, data);
@@ -194,7 +246,7 @@ export const profileService = {
 
 // Waitlist API service
 export const waitlistService = {
-  listWaitlistEntries: async (token?: string) => {
+  listWaitlistEntries: async (token?: string): Promise<WaitlistEntry[]> => {
     try {
       if (token) setAuthHeader(token);
       const response = await apiClient.get('/api/v1/waitlist/waitlist/');
@@ -205,7 +257,7 @@ export const waitlistService = {
     }
   },
 
-  joinWaitlist: async (email: string, token?: string) => {
+  joinWaitlist: async (email: string, token?: string): Promise<WaitlistEntry> => {
     try {
       if (token) setAuthHeader(token);
       const response = await apiClient.post('/api/v1/waitlist/waitlist/', { email });
@@ -216,7 +268,7 @@ export const waitlistService = {
     }
   },
 
-  getWaitlistEntry: async (id: number, token?: string) => {
+  getWaitlistEntry: async (id: number, token?: string): Promise<WaitlistEntry> => {
     try {
       if (token) setAuthHeader(token);
       const response = await apiClient.get(`/api/v1/waitlist/waitlist/${id}/`);
@@ -227,7 +279,7 @@ export const waitlistService = {
     }
   },
 
-  updateWaitlistEntry: async (id: number, data: any, token?: string) => {
+  updateWaitlistEntry: async (id: number, data: WaitlistEntryData, token?: string): Promise<WaitlistEntry> => {
     try {
       if (token) setAuthHeader(token);
       const response = await apiClient.put(`/api/v1/waitlist/waitlist/${id}/`, data);
@@ -238,7 +290,7 @@ export const waitlistService = {
     }
   },
 
-  partialUpdateWaitlistEntry: async (id: number, data: any, token?: string) => {
+  partialUpdateWaitlistEntry: async (id: number, data: Partial<WaitlistEntryData>, token?: string): Promise<WaitlistEntry> => {
     try {
       if (token) setAuthHeader(token);
       const response = await apiClient.patch(`/api/v1/waitlist/waitlist/${id}/`, data);
@@ -249,11 +301,10 @@ export const waitlistService = {
     }
   },
 
-  deleteWaitlistEntry: async (id: number, token?: string) => {
+  deleteWaitlistEntry: async (id: number, token?: string): Promise<void> => {
     try {
       if (token) setAuthHeader(token);
-      const response = await apiClient.delete(`/api/v1/waitlist/waitlist/${id}/`);
-      return response.data;
+      await apiClient.delete(`/api/v1/waitlist/waitlist/${id}/`);
     } catch (error) {
       console.error('Error deleting waitlist entry:', error);
       throw error;
@@ -263,9 +314,10 @@ export const waitlistService = {
 
 // Web3Auth API service
 export const web3AuthService = {
-  login: async (data: any, token?: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  login: async (data: any) => {
     try {
-      if (token) setAuthHeader(token);
+      // if (token) setAuthHeader(token);
       const response = await apiClient.post('/api/v1/web3auth/login/', data);
       return response.data;
     } catch (error) {
@@ -274,9 +326,9 @@ export const web3AuthService = {
     }
   },
 
-  getNonce: async (address: string, token?: string) => {
+  getNonce: async (address: string) => {
     try {
-      if (token) setAuthHeader(token);
+      // if (token) setAuthHeader(token);
       const response = await apiClient.get(`/api/v1/web3auth/nonce/${address}/`);
       return response.data;
     } catch (error) {
@@ -285,9 +337,9 @@ export const web3AuthService = {
     }
   },
 
-  verifyAddress: async (address: string, token?: string) => {
+  verifyAddress: async (address: string) => {
     try {
-      if (token) setAuthHeader(token);
+      // if (token) setAuthHeader(token);
       const response = await apiClient.get(`/api/v1/web3auth/verify-address/${address}/`);
       return response.data;
     } catch (error) {
@@ -296,13 +348,86 @@ export const web3AuthService = {
     }
   },
 
-  getUser: async (token: string) => {
+  getUser: async (token: string):Promise<UserData> => {
     try {
       setAuthHeader(token);
       const response = await apiClient.get('/api/v1/web3auth/user/');
       return response.data;
     } catch (error) {
       console.error('Error getting user:', error);
+      throw error;
+    }
+  },
+};
+
+export const notificationsService = {
+  // List all notifications
+  listNotifications: async (token: string | null): Promise<Notification[]> => {
+    try {
+      if (token) setAuthHeader(token);
+      const response = await apiClient.get('/api/v1/notifications/notifications/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      throw error;
+    }
+  },
+
+  // Create a new notification
+  createNotification: async (data: Omit<Notification, 'id' | 'is_read' | 'created_at' | 'user'>, token: string): Promise<Notification> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.post('/api/v1/notifications/notifications/', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      throw error;
+    }
+  },
+
+  // Retrieve a specific notification
+  getNotification: async (id: number, token: string): Promise<Notification> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get(`/api/v1/notifications/notifications/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching notification:', error);
+      throw error;
+    }
+  },
+
+  // Update a notification
+  updateNotification: async (id: number, data: Omit<Notification, 'id' | 'is_read' | 'created_at' | 'user'>, token: string): Promise<Notification> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.put(`/api/v1/notifications/notifications/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating notification:', error);
+      throw error;
+    }
+  },
+
+  // Partially update a notification
+  partialUpdateNotification: async (id: number, data: PatchedNotification, token: string): Promise<Notification> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.patch(`/api/v1/notifications/notifications/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error partially updating notification:', error);
+      throw error;
+    }
+  },
+
+  // Delete a notification
+  deleteNotification: async (id: number, token: string): Promise<void> => {
+    try {
+      setAuthHeader(token);
+      await apiClient.delete(`/api/v1/notifications/notifications/${id}/`);
+    } catch (error) {
+      console.error('Error deleting notification:', error);
       throw error;
     }
   },

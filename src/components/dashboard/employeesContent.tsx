@@ -13,10 +13,15 @@ import useTokenBalances from '@/hook/useBalance';
 interface RecipientProfile {
   id: number;
   name: string;
-  wallet: string;
-  position?: string;
-  salary?: string;
-  status?: 'active' | 'inactive' | 'on leave';
+  email: string;
+  recipient_ethereum_address: string;
+  organization: number;
+  phone_number: string;
+  salary: number;
+  position: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface Recipient {
@@ -25,7 +30,7 @@ interface Recipient {
   position: string;
   wallet: string;
   salary: string;
-  status: 'active' | 'inactive' | 'on leave';
+  status: string;
 }
 
 
@@ -72,13 +77,13 @@ export const EmployeesContent = () => {
       const recipientProfiles = await profileService.getOrganizationRecipients(token);
       
       // Handle the case where recipients might be undefined or not an array
-      const recipients = recipientProfiles?.recipients || [];
+      const recipients: RecipientProfile[] = recipientProfiles?.recipients || [];
       
-      const transformedEmployees = Array.isArray(recipients) ? recipients.map((recipient: RecipientProfile) => ({
+      const transformedEmployees = Array.isArray(recipients) ? recipients.map((recipient) => ({
         id: recipient.id,
         name: recipient.name || 'Unknown',
         position: recipient.position || 'Not specified',
-        wallet: recipient.wallet_address ? `${recipient.wallet_address.substring(0, 4)}...${recipient.wallet_address.substring(recipient.wallet_address.length - 3)}` : 'No wallet',
+        wallet: recipient.recipient_ethereum_address ? `${recipient.recipient_ethereum_address.substring(0, 4)}...${recipient.recipient_ethereum_address.substring(recipient.recipient_ethereum_address.length - 3)}` : 'No wallet',
         salary: recipient.salary ? `$${recipient.salary}(USDT)` : '$0(USDT)',
         status: recipient.status || 'inactive'
       })) : []; 

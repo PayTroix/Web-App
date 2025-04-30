@@ -92,6 +92,11 @@ export default function HeroSection() {
           token = getToken();
         }
 
+        if (!token) {
+          toast.error('Authentication failed');
+          return;
+        }
+
         // Assuming you have a getUser endpoint that returns user data
         const user = await web3AuthService.getUser(token);
         const userType = user.user_type;

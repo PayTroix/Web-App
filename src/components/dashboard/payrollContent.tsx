@@ -19,7 +19,9 @@ interface Recipient {
   id: number;
   name: string;
   status: string;
-  salary?: string;
+  salary?: number;
+  wallet_address?: string;
+  position?: string;
 }
 
 interface RecipientProfiles {
@@ -51,7 +53,7 @@ export const PayrollContent = () => {
 
         await getTokenBalances(address, walletProvider);
 
-        const recipientProfiles = await profileService.getOrganizationRecipients(token);
+        const recipientProfiles: RecipientProfiles = await profileService.getOrganizationRecipients(token);
         
         // Check if recipientProfiles and recipientProfiles.recipients exist before accessing properties
         if (recipientProfiles && recipientProfiles.recipients) {

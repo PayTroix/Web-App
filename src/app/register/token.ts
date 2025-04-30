@@ -18,10 +18,11 @@ export const getToken = (): string | null => {
             
             if (token && expiresAt) {
                 const expirationTime = parseInt(expiresAt, 10);
-                if (Date.now() > expirationTime) {
-                    removeToken();
-                    return null;
-                }
+                removeToken();
+                // if (Date.now() > expirationTime) {
+                //     removeToken();
+                //     return null;
+                // }
             }
             return token;
         } catch (error) {

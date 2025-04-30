@@ -74,10 +74,11 @@ export const EmployeesContent = () => {
         await getTokenBalances(address, walletProvider);
       }
 
-      const recipientProfiles = await profileService.getOrganizationRecipients(token);
+      const orgProfile = await profileService.listOrganizationProfiles(token);
+      const recipientProfiles = orgProfile[0];
       
       // Handle the case where recipients might be undefined or not an array
-      const recipients: RecipientProfile[] = recipientProfiles?.recipients || [];
+      const recipients: RecipientProfile[] = recipientProfiles.recipients || [];
       
       const transformedEmployees = Array.isArray(recipients) ? recipients.map((recipient) => ({
         id: recipient.id,

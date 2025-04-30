@@ -121,7 +121,7 @@ export const DashboardContent = () => {
           ]);
 
           // Safely access recipients - handle potential undefined values
-          const recipients = recipientProfiles?.recipients || [];
+          const recipients = _orgProfile[0].recipients || [];
           const recipientsLength = Array.isArray(recipients) ? recipients.length : 0;
           
           // Safely access notifications - handle potential undefined values
@@ -130,8 +130,8 @@ export const DashboardContent = () => {
           const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
           const payrollContract = new ethers.Contract(contractAddress, abi, signer);
           
-          const _orgDetails = await payrollContract.getOrganizationDetails(address);
-          const _orgContractAddress = await payrollContract.getOrganizationContract(address);
+          // const _orgDetails = await payrollContract.getOrganizationDetails(address);
+          // const _orgContractAddress = await payrollContract.getOrganizationContract(address);
        
           const dashboardData: DashboardData = {
             // treasuryBalance: `$${parseFloat(treasuryBalance).toLocaleString()}`,

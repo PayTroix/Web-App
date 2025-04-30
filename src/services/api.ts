@@ -16,6 +16,13 @@ const setAuthHeader = (token: string) => {
   apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 };
 
+interface UserData {
+  id: number;
+  username: string;
+  wallet_address: string;
+  user_type: string;
+}
+
 interface Notification {
   id: number;
   type: string;
@@ -35,6 +42,7 @@ interface OrganizationProfile {
   id: number;
   name: string;
   email: string;
+  user: UserData;
   organization_address: string;
   organization_phone?: string;
   website?: string;
@@ -82,12 +90,6 @@ interface WaitlistEntryData {
   email: string;
 }
 
-interface UserData {
-  id: number;
-  username: string;
-  wallet_address: string;
-  user_type: string;
-}
 // Profile API services
 export const profileService = {
   // Organization Profile Endpoints

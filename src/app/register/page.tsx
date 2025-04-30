@@ -89,30 +89,27 @@ const handleSubmit = async (e: React.FormEvent) => {
         console.log("Creating organization with params:", orgData.name, 'Organization description');
         
        
-        let estimatedGas;
-        try {
-          estimatedGas = await payrollContract.createOrganization.estimateGas(
-            orgData.name, 
-            'Organization description'
-          );
-          console.log("Gas estimation successful:", estimatedGas);
-        } catch (estimateError: unknown) {
-          console.error("Gas estimation failed:", estimateError);
-          const errorMessage = estimateError instanceof Error 
-            ? estimateError.message 
-            : typeof estimateError === 'object' && estimateError !== null && 'reason' in estimateError
-              ? String(estimateError.reason)
-              : 'Unknown error during gas estimation';
-          throw new Error(`Failed to estimate gas: ${errorMessage}`);
-        };
+        // let estimatedGas;
+        // try {
+        //   estimatedGas = await payrollContract.createOrganization.estimateGas(
+        //     orgData.name, 
+        //     'Organization description'
+        //   );
+        //   console.log("Gas estimation successful:", estimatedGas);
+        // } catch (estimateError: unknown) {
+        //   console.error("Gas estimation failed:", estimateError);
+        //   const errorMessage = estimateError instanceof Error 
+        //     ? estimateError.message 
+        //     : typeof estimateError === 'object' && estimateError !== null && 'reason' in estimateError
+        //       ? String(estimateError.reason)
+        //       : 'Unknown error during gas estimation';
+        //   throw new Error(`Failed to estimate gas: ${errorMessage}`);
+        // };
         
         // Then send the transaction with the estimated gas (plus buffer)
         const tx = await payrollContract.createOrganization(
           orgData.name, 
-          'Organization description',
-          { 
-            gasLimit: (estimatedGas * BigInt(12)) / BigInt(10) // Add 20% buffer
-          }
+          'Organization description'
         );
         
         console.log("Transaction sent:", tx.hash);

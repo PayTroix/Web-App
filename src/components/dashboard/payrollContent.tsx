@@ -53,7 +53,9 @@ export const PayrollContent = () => {
 
         await getTokenBalances(address, walletProvider);
 
-        const recipientProfiles: RecipientProfiles = await profileService.getOrganizationRecipients(token);
+        // const recipientProfiles: RecipientProfiles = await profileService.getOrganizationRecipients(token);
+        const orgProfile = await profileService.listOrganizationProfiles(token);
+        const recipientProfiles:RecipientProfiles = orgProfile[0];
         
         // Check if recipientProfiles and recipientProfiles.recipients exist before accessing properties
         if (recipientProfiles && recipientProfiles.recipients) {

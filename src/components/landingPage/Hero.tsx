@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider, type Provider } from "@reown/appkit/react";
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { web3AuthService } from '../../services/api';
+import { profileService, web3AuthService } from '../../services/api';
 import Link from 'next/link';
 import { getToken, removeToken, storeToken } from '@/app/register/token';
 import { ethers } from 'ethers';
@@ -14,6 +14,16 @@ type AuthResponse = {
   refresh?: string;
   user?: {
     user_type: 'organization' | 'recipient';
+  };
+};
+
+type ApiError = {
+  response?: {
+    data?: {
+      detail?: string;
+      code?: string;
+      exists?: boolean;
+    };
   };
 };
 
@@ -97,14 +107,45 @@ export default function HeroSection() {
           return;
         }
 
-        // Assuming you have a getUser endpoint that returns user data
-        const user = await web3AuthService.getUser(token);
-        const userType = user.user_type;
+        // // Assuming you have a getUser endpoint that returns user data
+        // const user = await web3AuthService.getUser(token);
+        // const userType = user.user_type;
+
+        // const orgResponse = await profileService.listOrganizationProfiles(token);
+        // console.log('Organization response:', orgResponse); // Debug log
+        // const userType = orgResponse[0].user.user_type;
         
-        if (userType === 'organization') {
-          router.push('/dashboard');
-        } else if (userType === 'recipient') {
-          router.push('/recipient-dashboard');
+        // if (userType === 'organization') {
+        //   router.push('/dashboard');
+        // } else if (userType === 'recipient') {
+        //   router.push('/recipient-dashboard');
+        // }
+
+        try {
+          const orgResponse = await profileService.listOrganizationProfiles(token);
+          console.log('Organization response:', orgResponse);
+          const userType = orgResponse[0]?.user?.user_type;
+          
+          if (userType === 'organization') {
+            router.push('/dashboard');
+          } else if (userType === 'recipient') {
+            router.push('/recipient-dashboard');
+          } else if (userType === undefined) {
+            toast.error('Organization profile not found. Please complete registration.');
+            router.push('/register');
+          }
+        } catch (orgError: unknown) {
+          if (
+            typeof orgError === 'object' && 
+            orgError !== null && 
+            'response' in orgError &&
+            (orgError as ApiError).response?.data?.detail === 'Organization profile not found.'
+          ) {
+            toast.error('Organization profile not found. Please complete registration.');
+            router.push('/register');
+            return;
+          }
+          throw orgError; // Re-throw other errors to be caught by the outer catch block
         }
       } catch (error: unknown) {
         console.error('Error checking user:', error);

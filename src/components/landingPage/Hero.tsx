@@ -110,8 +110,8 @@ export default function HeroSection() {
         console.error('Error checking user:', error);
         
         if (typeof error === 'object' && error !== null && 'response' in error) {
-          const err = error as { response?: { data?: { code?: string } } };
-          if (err.response?.data?.code === 'token_not_valid') {
+          const err = error as { response?: { data?: { code?: string; exists?: boolean } } };
+          if (err.response?.data?.code === 'token_not_valid' || err.response?.data?.exists === false) {
             removeToken();
             toast.error('Your session has expired. Please sign in again.');
             await login();

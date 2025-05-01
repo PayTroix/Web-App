@@ -23,6 +23,16 @@ interface UserData {
   user_type: string;
 }
 
+interface Payroll {
+  id: number;
+  recipient: number;
+  amount: string;
+  description: string;
+  date: string;
+  status: string;
+  batch_reference?: string;
+}
+
 interface Notification {
   id: number;
   type: string;
@@ -434,5 +444,29 @@ export const notificationsService = {
     }
   },
 };
+
+export const payrollService = {
+  createPayroll: async (data: Omit<Payroll, 'id'>, token: string): Promise<Payroll> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.post('/api/v1/payroll/payrolls/', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating payroll:', error);
+      throw error;
+    }
+  },
+
+  updatePayrollStatus: async (id: number, status: string, token: string): Promise<Payroll> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.patch(`/api/v1/payroll/payrolls/${id}/`, { status });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating payroll status:', error);
+      throw error;
+    }
+  },
+}
 
 export default apiClient;

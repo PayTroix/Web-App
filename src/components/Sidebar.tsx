@@ -187,10 +187,13 @@ export const Sidebar: FC = () => {
         </button>
 
         <nav className="px-4 py-6 flex flex-col h-full">
-          {mainNavItems.map(renderNavItem)}
+          {/* Main nav items including settings */}
+          {[...mainNavItems, settingsItem].map(renderNavItem)}
+          
+          {/* Remove the settings item from bottom */}
           <div className="mt-auto">
             <hr className="border-gray-800 my-4" />
-            {renderNavItem(settingsItem)}
+            {/* You can add other bottom items here if needed */}
           </div>
         </nav>
       </aside>

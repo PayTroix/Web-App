@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { JSX } from 'react/jsx-runtime';
 import WalletButton from './WalletButton';
 import CreateRecipient from './CreateRecipient';
+import { MdOutlineDashboard } from "react-icons/md";
 
 interface NavItem {
   label: string;
@@ -82,14 +83,25 @@ export const Sidebar: FC = () => {
   
   const mainNavItems: NavItem[] = [
     {
-      label: 'Dashboard',
-      href: '/dashboard',
+      label: 'Home',
+      href: '/',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
           <polyline points="9 22 9 12 15 12 15 22" />
         </svg>
       ),
+    },
+    {
+      label: 'Dashboard',
+      href: '/dashboard',
+      // icon: (
+      //   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+      //     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      //     <polyline points="9 22 9 12 15 12 15 22" />
+      //   </svg>
+      // ),
+      icon: <MdOutlineDashboard className="text-blue-500" size={20} />,
     },
     {
       label: 'Recipients',

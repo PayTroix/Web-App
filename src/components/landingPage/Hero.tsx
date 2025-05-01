@@ -6,7 +6,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { profileService, web3AuthService } from '../../services/api';
 import Link from 'next/link';
-import { getToken, removeToken, storeToken } from '@/app/register/token';
+import { getToken, isTokenExpired, removeToken, storeToken } from '@/app/register/token';
 import { ethers } from 'ethers';
 
 type AuthResponse = {
@@ -96,30 +96,12 @@ export default function HeroSection() {
         }
 
         let token = getToken();
-        if (!token) {
+        if (!token || isTokenExpired()) {
+          toast.error('Authentication failed');
           const loginSuccess = await login();
           if (!loginSuccess) return;
           token = getToken();
         }
-
-        if (!token) {
-          toast.error('Authentication failed');
-          return;
-        }
-
-        // // Assuming you have a getUser endpoint that returns user data
-        // const user = await web3AuthService.getUser(token);
-        // const userType = user.user_type;
-
-        // const orgResponse = await profileService.listOrganizationProfiles(token);
-        // console.log('Organization response:', orgResponse); // Debug log
-        // const userType = orgResponse[0].user.user_type;
-        
-        // if (userType === 'organization') {
-        //   router.push('/dashboard');
-        // } else if (userType === 'recipient') {
-        //   router.push('/recipient-dashboard');
-        // }
 
         try {
           const orgResponse = await profileService.listOrganizationProfiles(token);

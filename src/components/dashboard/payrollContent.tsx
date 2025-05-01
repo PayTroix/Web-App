@@ -1,18 +1,23 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { getToken } from '@/app/register/token';
+import { getToken, isTokenExpired } from '@/app/register/token';
 import { profileService } from '@/services/api';
 import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import toast from 'react-hot-toast';
 import useTokenBalances from '@/hook/useBalance';
+import { ethers } from 'ethers';
+import abi from '@/services/abi.json';
+import orgAbi from '@/services/organization_abi.json';
+import { batchDisburseSalaryAtomic, disburseSalaryAtomic } from '@/services/payRoll';
 
+// Update the Employee interface to match backend status types
 interface Employee {
   id: number;
   name: string;
   avatar: string;
   date: string;
   salary: string;
-  status: 'Completed' | 'Processing' | 'Pending';
+  status: 'Completed' | 'Pending' | 'Failed';  // Match backend status options
 }
 
 interface Recipient {
@@ -41,6 +46,7 @@ export const PayrollContent = () => {
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [activeEmployees, setActiveEmployees] = useState(0);
   const [pendingPayments, setPendingPayments] = useState(0);
+  const [isDisbursing, setIsDisbursing] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,7 +55,7 @@ export const PayrollContent = () => {
       setLoading(true);
       try {
         const token = getToken();
-        if (!token) return;
+        if (!token || isTokenExpired()) return;
 
         await getTokenBalances(address, walletProvider);
 
@@ -64,14 +70,26 @@ export const PayrollContent = () => {
           setActiveEmployees(activeCount);
           setPendingPayments(Math.floor(activeCount * 0.3));
 
-          const mockPayrollData = recipientProfiles.recipients.slice(0, 5).map((recipient: Recipient, index: number) => ({
-            id: recipient.id,
-            name: recipient.name || 'Unknown',
-            avatar: '',
-            date: new Date().toLocaleString('default', { month: 'long' }),
-            salary: `$${recipient.salary || '0'}(USDT)`,
-            status: ['Completed', 'Processing', 'Pending'][index % 3] as 'Completed' | 'Processing' | 'Pending'
-          }));
+          // Update the mockPayrollData mapping
+          const mockPayrollData = recipientProfiles.recipients.slice(0, 5).map((recipient: Recipient) => {
+            let status: 'Completed' | 'Pending' | 'Failed';
+            if (recipient.status === 'completed') {
+              status = 'Completed';
+            } else if (recipient.status === 'failed') {
+              status = 'Failed';
+            } else {
+              status = 'Pending';
+            }
+            
+            return {
+              id: recipient.id,
+              name: recipient.name || 'Unknown',
+              avatar: '',
+              date: new Date().toLocaleString('default', { month: 'long' }),
+              salary: `$${recipient.salary || '0'}(USDT)`,
+              status
+            };
+          });
 
           setEmployees(mockPayrollData);
         } else {
@@ -93,17 +111,156 @@ export const PayrollContent = () => {
     fetchData();
   }, [isConnected, address, walletProvider, chainId, getTokenBalances]);
 
-  // Function to render the status with appropriate color
+  // Update the renderStatus function to handle all possible states
   const renderStatus = (status: string) => {
     switch (status) {
       case 'Completed':
         return <span className="text-green-500">{status}</span>;
-      case 'Processing':
-        return <span className="text-gray-400">{status}</span>;
+      case 'Failed':
+        return <span className="text-red-500">{status}</span>;
       case 'Pending':
         return <span className="text-yellow-500">{status}</span>;
       default:
         return <span className="text-gray-400">{status}</span>;
+    }
+  };
+
+  const handleDisburse = async () => {
+    try {
+      if (!isConnected || !address || !walletProvider) {
+        toast.error('Please connect your wallet first');
+        return;
+      }
+  
+      if (!paymentMonth) {
+        toast.error('Please specify payment month');
+        return;
+      }
+  
+      const token = getToken();
+      if (!token || isTokenExpired()) {
+        toast.error('Authentication required');
+        return;
+      }
+  
+      setIsDisbursing(true);
+  
+      // Get organization profile to get the ID
+      const orgProfile = await profileService.listOrganizationProfiles(token);
+      const organizationId = orgProfile[0]?.id; // Get the organization ID
+  
+      if (!organizationId) {
+        throw new Error('Organization ID not found');
+      }
+  
+      const recipientProfiles = orgProfile[0]?.recipients || [];
+      const filteredRecipients = selectedGroup === 'all' 
+        ? recipientProfiles
+        : recipientProfiles.filter(r => r.status === selectedGroup);
+  
+      if (filteredRecipients.length === 0) {
+        toast.error('No recipients found for selected group');
+        return;
+      }
+      
+      const provider = new ethers.BrowserProvider(walletProvider, chainId);
+      const signer = await provider.getSigner();
+      
+      const factoryContractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS;
+      if (!factoryContractAddress) {
+        throw new Error('Factory contract address not configured');
+      }
+  
+      const factoryContract = new ethers.Contract(factoryContractAddress, abi, provider);
+      const contractAddress = await factoryContract.getOrganizationContract(address);
+  
+      const payrollContract = new ethers.Contract(contractAddress, orgAbi, signer);
+      
+      const usdtAddress = process.env.NEXT_PUBLIC_USDT_ADDRESS;
+      if (!usdtAddress) {
+        throw new Error('USDT token address not found');
+      }
+  
+      const usdtContract = new ethers.Contract(
+        usdtAddress,
+        ['function allowance(address,address) view returns (uint256)',
+         'function approve(address,uint256) returns (bool)',
+         'function balanceOf(address) view returns (uint256)'],
+        signer
+      );
+  
+      // Calculate total net amount
+      const totalNetAmount = filteredRecipients.reduce((sum, r) => sum + (r.salary || 0), 0);
+      
+      // Use contract's calculateGrossAmount function
+      const totalGrossAmount = await payrollContract.calculateGrossAmount(
+        ethers.parseUnits(totalNetAmount.toString(), 6)
+      );
+  
+      // Check current allowance
+      const currentAllowance = await usdtContract.allowance(address, contractAddress);
+      
+      if (currentAllowance < totalGrossAmount) {
+        toast.loading('Approving USDT...');
+        const approveTx = await usdtContract.approve(
+          contractAddress,
+          totalGrossAmount // Using gross amount from contract
+        );
+        await approveTx.wait();
+        toast.dismiss();
+        toast.success('USDT approved');
+      }
+  
+      // Check balance
+      const balance = await usdtContract.balanceOf(address);
+      if (balance < totalGrossAmount) {
+        throw new Error(
+          `Insufficient USDT balance. Required: ${ethers.formatUnits(totalGrossAmount, 6)} USDT`
+        );
+      }
+  
+      if (filteredRecipients.length === 1) {
+        const recipient = filteredRecipients[0];
+        await disburseSalaryAtomic({
+          recipientId: recipient.id,
+          recipientAddress: recipient.recipient_ethereum_address,
+          amount: recipient.salary,
+          tokenAddress: usdtAddress,
+          paymentMonth,
+          token,
+          signer,
+          contractAddress,
+          organizationId,
+        });
+      } else {
+        await batchDisburseSalaryAtomic({
+          recipients: filteredRecipients.map(r => ({
+            id: r.id,
+            address: r.recipient_ethereum_address,
+            amount: r.salary,
+          })),
+          tokenAddress: usdtAddress,
+          paymentMonth,
+          token,
+          signer,
+          contractAddress,
+          organizationId,
+        });
+      }
+  
+      // Refresh data after successful disbursement
+      const updatedOrgProfile = await profileService.listOrganizationProfiles(token);
+      const updatedRecipients = updatedOrgProfile[0]?.recipients || [];
+      
+      setTotalEmployees(updatedRecipients.length);
+      setActiveEmployees(updatedRecipients.filter(r => r.status === 'active').length);
+      
+      toast.success('Salary disbursement completed successfully!');
+    } catch (error) {
+      console.error('Disbursement error:', error);
+      toast.error(error instanceof Error ? error.message : 'Unknown disbursement error');
+    } finally {
+      setIsDisbursing(false);
     }
   };
 
@@ -323,7 +480,7 @@ export const PayrollContent = () => {
               <div className="border border-gray-800 rounded-lg p-4 flex items-center">
                 <div className="flex items-center justify-center w-8 h-8 bg-teal-500 rounded-md mr-3">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M12 2L2 7l10 5 10-5z" />
                   </svg>
                 </div>
                 <div className="flex-1">
@@ -346,9 +503,13 @@ export const PayrollContent = () => {
 
             {/* Disburse Button */}
             <div className="flex justify-end">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg">
-                Disburse
-              </button>
+              <button 
+                onClick={handleDisburse}
+                disabled={isDisbursing}
+                className={`bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg ${isDisbursing ? 'opacity-50' : ''}`}
+              >
+              {isDisbursing ? 'Processing...' : 'Disburse'}
+            </button>
             </div>
           </>
         ) : (

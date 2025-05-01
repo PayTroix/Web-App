@@ -53,21 +53,20 @@ export const EmployeesContent = () => {
       const provider = new ethers.BrowserProvider(walletProvider, chainId);
       const signer = await provider.getSigner();
       
-      let token = getToken();
-      
-      // If no token or token is expired, get a new one
+
+      const token = getToken();
       if (!token || isTokenExpired()) {
-        const { nonce } = await web3AuthService.getNonce(address);
-        const message = `I'm signing my one-time nonce: ${nonce}`;
-        const signature = await signer.signMessage(message);
-        
-        const authResponse = await web3AuthService.login({
-          address,
-          signature
-        });
-        
-        token = authResponse.access;
-        storeToken(token as string, authResponse.expiresIn || 3600); // Default to 1 hour if not provided
+          // Get new token
+          const { nonce } = await web3AuthService.getNonce(address);
+          const message = `I'm signing my one-time nonce: ${nonce}`;
+          const signature = await signer.signMessage(message);
+          
+          const authResponse = await web3AuthService.login({
+              address,
+              signature
+          });
+          
+          storeToken(authResponse.access); // Default to 1 hour if not provided
       }
 
       if (balances.USDT === '0' && balances.USDC === '0' && !balances.loading) {
@@ -122,6 +121,7 @@ export const EmployeesContent = () => {
 
   const handleRemoveEmployee = async (id: number) => {
     try {
+      
       const token = getToken();
       if (!token || isTokenExpired()) {
         toast.error('Authentication required or session expired');

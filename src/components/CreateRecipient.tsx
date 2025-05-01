@@ -8,7 +8,7 @@ import { ethers } from 'ethers';
 import { profileService } from '@/services/api';
 import { useAppKitNetworkCore, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import { useAppKitAccount } from '@reown/appkit/react';
-import { getToken } from '@/app/register/token';
+import { getToken, isTokenExpired } from '@/app/register/token';
 import abi from '@/services/abi.json';
 
 interface Recipient {
@@ -214,7 +214,7 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
       console.log('Submitting recipients...'); // Debug log
       
       const token = getToken();
-      if (!token) {
+      if (!token || isTokenExpired()) {
         throw new Error('Authentication token not found');
       }
       console.log('Token retrieved'); // Debug log

@@ -35,6 +35,11 @@ interface PayrollResult {
     transactionHash: string;
 }
 
+interface ContractErrorData {
+    data?: unknown;
+    reason?: string;
+}
+
 export async function disburseSalaryAtomic({
     recipientId,
     recipientAddress,
@@ -115,19 +120,33 @@ export async function disburseSalaryAtomic({
             }
         }
 
-        // Handle specific contract errors
-        // if (error instanceof Error) {
-        //     const errorMessage = 'reason' in error ? error.reason as string : error.message;
-        //     // throw new Error(`Disbursement failed: ${errorMessage.split('(')[0]}`);
-        //     throw new Error(`Disbursement failed: ${errorMessage}`);
-        // }
-        if (error.data) {
-            // Try to decode custom error
-            const customError = payrollContract.interface.parseError(error.data);
-            throw new Error(`Contract error: ${customError.name}`);
-          }
-          throw error;
+        if (error instanceof Error) {
+            // Check if it's a contract error
+            const contractError = error as ContractErrorData;
+            if ('data' in contractError && contractError.data) {
+                try {
+                    // Convert the error data to a hex string if it isn't already
+                    const errorData = typeof contractError.data === 'string' 
+                        ? contractError.data 
+                        : '0x' + Buffer.from(JSON.stringify(contractError.data)).toString('hex');
+                    
+                    const parsedError = payrollContract.interface.parseError(errorData);
+                    if (parsedError) {
+                        throw new Error(`Contract error: ${parsedError.name}`);
+                    }
+                } catch (parseError) {
+                    // If parsing fails, fall back to regular error handling
+                    console.error('Failed to parse contract error:', parseError);
+                }
+            }
+            
+            // Handle regular errors
+            const errorMessage = 'reason' in error ? error.reason as string : error.message;
+            throw new Error(`Transaction failed: ${errorMessage}`);
         }
+        
+        throw error;
+    }
 }
 
 export async function batchDisburseSalaryAtomic({
@@ -220,8 +239,28 @@ export async function batchDisburseSalaryAtomic({
         }
 
         if (error instanceof Error) {
+            // Check if it's a contract error
+            const contractError = error as ContractErrorData;
+            if ('data' in contractError && contractError.data) {
+                try {
+                    // Convert the error data to a hex string if it isn't already
+                    const errorData = typeof contractError.data === 'string' 
+                        ? contractError.data 
+                        : '0x' + Buffer.from(JSON.stringify(contractError.data)).toString('hex');
+                    
+                    const parsedError = payrollContract.interface.parseError(errorData);
+                    if (parsedError) {
+                        throw new Error(`Contract error: ${parsedError.name}`);
+                    }
+                } catch (parseError) {
+                    // If parsing fails, fall back to regular error handling
+                    console.error('Failed to parse contract error:', parseError);
+                }
+            }
+            
+            // Handle regular errors
             const errorMessage = 'reason' in error ? error.reason as string : error.message;
-            throw new Error(`Batch disbursement failed: ${errorMessage.split('(')[0]}`);
+            throw new Error(`Batch disbursement failed: ${errorMessage}`);
         }
 
         throw error;

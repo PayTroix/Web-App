@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import LiveLineChart from './LiveChart';
 import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import { ethers } from 'ethers';
-import abi from '@/services/abi.json';
 import { notificationsService, profileService, web3AuthService } from '@/services/api';
 import toast from 'react-hot-toast';
 
@@ -96,10 +95,11 @@ export const DashboardContent = () => {
             const provider = new ethers.BrowserProvider(walletProvider, chainId);
             const signer = await provider.getSigner();
             
-            let token = getToken();
-            
+    
             // If no token or token is expired, get a new one
+            const token = getToken();
             if (!token || isTokenExpired()) {
+                // Get new token
                 const { nonce } = await web3AuthService.getNonce(address);
                 const message = `I'm signing my one-time nonce: ${nonce}`;
                 const signature = await signer.signMessage(message);
@@ -109,14 +109,11 @@ export const DashboardContent = () => {
                     signature
                 });
                 
-                token = authResponse.access;
-                // Assuming your authResponse includes expiresIn (in seconds)
-                storeToken(token as string, authResponse.expiresIn || 3600); // Default to 1 hour if not provided
+                storeToken(authResponse.access);
             }
 
-          const [_orgProfile, recipientProfiles, notifications] = await Promise.all([
+          const [_orgProfile, notifications] = await Promise.all([
             profileService.listOrganizationProfiles(token),
-            profileService.getOrganizationRecipients(token),
             notificationsService.listNotifications(token)
           ]);
 
@@ -127,8 +124,8 @@ export const DashboardContent = () => {
           // Safely access notifications - handle potential undefined values
           const notificationsList = Array.isArray(notifications) ? notifications : [];
 
-          const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
-          const payrollContract = new ethers.Contract(contractAddress, abi, signer);
+          // const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
+          // const payrollContract = new ethers.Contract(contractAddress, abi, signer);
           
           // const _orgDetails = await payrollContract.getOrganizationDetails(address);
           // const _orgContractAddress = await payrollContract.getOrganizationContract(address);

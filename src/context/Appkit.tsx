@@ -15,7 +15,7 @@ if (!projectId) {
 const metadata = {
   name: 'PayTroix - Web3 Payroll Solution',
   description: 'Payroll Reinvented for Web3 - Instant, Secure, and Borderless',
-  url: "https://mywebsite.com", // origin must match your domain & subdomain
+  url: "https://web-app-zf5d.onrender.com", // origin must match your domain & subdomain
   icons: ["https://avatars.mywebsite.com/"],
 };
 

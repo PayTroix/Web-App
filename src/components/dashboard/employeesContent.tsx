@@ -7,7 +7,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import abi from "@/services/abi.json";
 import toast from 'react-hot-toast';
 import useTokenBalances from '@/hook/useBalance';
-
+import CreateRecipient from "@/components/CreateRecipient";
 
 // API response type
 interface RecipientProfile {
@@ -44,6 +44,7 @@ export const EmployeesContent = () => {
   const [activeEmployees, setActiveEmployees] = useState(0);
   const { balances, getTokenBalances } = useTokenBalances();
   const balance = balances.loading ? '...' : balances.USDT || balances.USDC || '0';
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!isConnected || !address) return;
@@ -272,10 +273,11 @@ export const EmployeesContent = () => {
             </div>
             <h2 className="text-white text-md">Recipient</h2>
           </div>
-          <button className="text-white px-4 py-1.5 rounded-lg flex items-center text-sm font-medium">
+          <button className="text-white px-4 py-1.5 rounded-lg flex items-center text-sm font-medium" onClick={() => setShowCreateModal(true)}>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="blue" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
+              
             </svg>
             Add Recipient
           </button>
@@ -337,6 +339,14 @@ export const EmployeesContent = () => {
           </table>
         </div>
       </div>
+       {/* Modal Overlay */}
+            {showCreateModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center px-4">
+                <div className="relative w-full max-w-4xl">
+                  <CreateRecipient onClose={() => setShowCreateModal(false)} />
+                </div>
+              </div>
+            )}
     </div>
   );
 };

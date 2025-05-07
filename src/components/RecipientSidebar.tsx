@@ -48,7 +48,7 @@ export const Header: FC = () => {
         <div className="flex items-center gap-3 md:gap-6">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-3 py-2 md:px-4 bg-blue-600 hover:bg-blue-700 rounded-lg transition-all text-sm md:text-base transform hover:scale-105 whitespace-nowrap"
+            className="flex items-center gap-2 px-3 py-2 md:px-4  text-blue-400 rounded-lg transition-all text-sm md:text-base transform hover:scale-105 whitespace-nowrap"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 md:w-5 md:h-5">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -83,23 +83,13 @@ export const Sidebar: FC = () => {
   
   const mainNavItems: NavItem[] = [
     {
-      label: 'Home',
-      href: '/',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-          <polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-      ),
-    },
-    {
       label: 'Dashboard',
       href: '/dashboard',
       icon: <MdOutlineDashboard className="text-blue-500" size={20} />,
     },
     {
-      label: 'Recipients',
-      href: '/employees',
+      label: 'Wallet',
+      href: '/wallet',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -109,16 +99,7 @@ export const Sidebar: FC = () => {
         </svg>
       ),
     },
-    {
-      label: 'Payroll',
-      href: '/payroll',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
-          <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-        </svg>
-      ),
-    },
+    
   ];
 
   const settingsItem: NavItem = {
@@ -193,13 +174,10 @@ export const Sidebar: FC = () => {
         </button>
 
         <nav className="px-4 py-6 flex flex-col h-full">
-          {/* Main nav items including settings */}
-          {[...mainNavItems, settingsItem].map(renderNavItem)}
-          
-          {/* Remove the settings item from bottom */}
+          {mainNavItems.map(renderNavItem)}
           <div className="mt-auto">
             <hr className="border-gray-800 my-4" />
-            {/* You can add other bottom items here if needed */}
+            {renderNavItem(settingsItem)}
           </div>
         </nav>
       </aside>

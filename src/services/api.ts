@@ -93,7 +93,7 @@ interface RecipientProfileData {
   name: string;
   email: string;
   recipient_ethereum_address: string;
-  organization: number;
+  // organization: number;
 }
 
 interface WaitlistEntryData {

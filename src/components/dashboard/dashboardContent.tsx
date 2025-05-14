@@ -5,6 +5,7 @@ import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } 
 import { ethers } from 'ethers';
 import { notificationsService, profileService, web3AuthService } from '@/services/api';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 import WalletBalance from './WalletBalance';
 import TotalEmployees from './TotalEmployees';
@@ -85,6 +86,7 @@ export const DashboardContent = () => {
   const { address, isConnected } = useAppKitAccount();
   const { chainId } = useAppKitNetwork();
   const { walletProvider } = useAppKitProvider<Provider>('eip155');
+  const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -124,11 +126,6 @@ export const DashboardContent = () => {
           // Safely access notifications - handle potential undefined values
           const notificationsList = Array.isArray(notifications) ? notifications : [];
 
-          // const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
-          // const payrollContract = new ethers.Contract(contractAddress, abi, signer);
-          
-          // const _orgDetails = await payrollContract.getOrganizationDetails(address);
-          // const _orgContractAddress = await payrollContract.getOrganizationContract(address);
        
           const dashboardData: DashboardData = {
             // treasuryBalance: `$${parseFloat(treasuryBalance).toLocaleString()}`,
@@ -157,9 +154,12 @@ export const DashboardContent = () => {
           // If the error is due to token expiration, remove the token
           if (error instanceof Error && 'response' in error && (error.response as { status?: number })?.status === 401) {
               removeToken();
-              toast.error('Session expired. Please refresh the page.');
+              toast.error('Session expired.');
+              setTimeout(() => {
+              router.replace('/');
+            }, 1500);
           } else {
-              toast.error('Failed to load dashboard data');
+              toast.error('Failed to load dashboard data\nPlease refresh the page.');
           }
         } finally {
             setLoading(false);

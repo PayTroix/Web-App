@@ -116,7 +116,7 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
       },
       error: (error) => {
         console.error('Error parsing CSV:', error);
-        toast.error(`Error parsing CSV: ${error.message}`);
+        toast.error(`Error parsing CSV`);
       }
     });
   };
@@ -197,8 +197,8 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     
     if (validationErrors.length > 0) {
       console.error('Validation errors:', validationErrors); // Debug log
-      toast.error(validationErrors.slice(0, 3).join('\n') + 
-        (validationErrors.length > 3 ? `\n...and ${validationErrors.length - 3} more errors` : ''));
+      // toast.error(validationErrors.slice(0, 3).join('\n') + 
+      //   (validationErrors.length > 3 ? `\n...and ${validationErrors.length - 3} more errors` : ''));
       return;
     }
     
@@ -221,9 +221,9 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
 
       // Get organization ID
       // const userData = await web3AuthService.getUser(token);
-      const orgResponse = await profileService.listOrganizationProfiles(token);
-      console.log('Organization response:', orgResponse); // Debug log
-      const organizationId = orgResponse[0].id;
+      // const orgResponse = await profileService.listOrganizationProfiles(token);
+      // console.log('Organization response:', orgResponse); // Debug log
+      // const organizationId = orgResponse[0].id;
 
       // Get signer
       const provider = new ethers.BrowserProvider(walletProvider, chainId);
@@ -254,7 +254,7 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
       console.log('Formatted recipients:', formattedRecipients); // Debug log
   
       
-      console.log('Organization ID:', organizationId); // Debug log
+      // console.log('Organization ID:', organizationId); // Debug log
   
       if (formattedRecipients.length === 1) {
         console.log('Creating single recipient'); // Debug log
@@ -263,7 +263,7 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
           name: recipient.name,
           email: recipient.email,
           recipient_ethereum_address: recipient.recipient_ethereum_address,
-          organization: organizationId,
+          // organization: organizationId,
           phone_number: '',
           salary: recipient.salary,
           position: recipient.position || '',
@@ -283,7 +283,7 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
             salary: r.salary,
             position: r.position || ''
           })),
-          organizationId,
+          // organizationId,
           token,
           signer,
           contractAddress

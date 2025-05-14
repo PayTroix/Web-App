@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import useTokenBalances from '@/hooks/useBalance';
 import { toastConfig } from '@/utils/toast';
 import CreateRecipient from '../CreateRecipient';
+import { useRouter } from 'next/navigation';
 
 // API response type
 interface RecipientProfile {
@@ -45,6 +46,7 @@ export const EmployeesContent = () => {
   const { balances, getTokenBalances } = useTokenBalances();
   const balance = balances.loading ? '...' : balances.USDT || balances.USDC || '0';
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const router = useRouter();
 
   const fetchData = useCallback(async () => {
     if (!isConnected || !address) return;
@@ -106,10 +108,13 @@ export const EmployeesContent = () => {
         error.response && typeof error.response === 'object' &&
         'status' in error.response && error.response.status === 401) {
         removeToken();
-        toast.error('Session expired. Please refresh the page.');
-      } else {
-        toast.error('Failed to load dashboard data');
-      }
+        toast.error('Session expired.');
+        setTimeout(() => {
+        router.replace('/');
+          }, 1500);
+        } else {
+            toast.error('Failed to load dashboard data\nPlease refresh the page.');
+        }
     } finally {
       setLoading(false);
     }

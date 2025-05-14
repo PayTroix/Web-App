@@ -37,6 +37,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       const isVerified = await web3AuthService.verifyAddress(address);
       
       if (!isVerified.exists) {
+        toast.error("Address not Valid");
         throw new Error('Address not verified');
       }
 
@@ -119,6 +120,7 @@ const handleSubmit = async (e: React.FormEvent) => {
         if (!receipt || receipt.status !== 1) {
           // Try to get more detailed error information
           const txDetails = await provider.getTransaction(tx.hash);
+          // toast.error("Transaction failed");
           throw new Error(`Transaction failed with status ${receipt.status}. Transaction: ${JSON.stringify(txDetails)}`);
         }
         toast.success('Organization created successfully!');
@@ -137,10 +139,13 @@ const handleSubmit = async (e: React.FormEvent) => {
           switch (ethersError.code) {
             case 'CALL_EXCEPTION':
               console.error('Contract call exception:', error);
+              toast.error('Contract call failed');
               throw new Error(`Contract error: ${ethersError.reason || 'Unknown contract error'}`);
             case 'INSUFFICIENT_FUNDS':
+              toast.error('Insufficient funds for transaction');
               throw new Error('Insufficient funds for transaction');
             case 'NETWORK_ERROR':
+              toast.error('Network error occurred');
               throw new Error('Network error occurred');
             default:
               throw error;
@@ -153,7 +158,8 @@ const handleSubmit = async (e: React.FormEvent) => {
     } catch (error: unknown) {
       console.error('Registration error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to register organization';
-      toast.error(errorMessage);
+      throw new Error(errorMessage);
+      // toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

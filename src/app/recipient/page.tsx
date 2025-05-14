@@ -13,7 +13,7 @@ function RecipientDashboard() {
           {/* Top Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Total Salary Card */}
-            <div className="bg-zinc-900 rounded-xl p-6 flex flex-col">
+            <div className="bg-black rounded-lg p-2 border border-[#2C2C2C] transition-all duration-300 hover:border-blue-500/20">
               <div className="flex justify-between items-center mb-8">
                 <div>
                   <Image
@@ -27,7 +27,7 @@ function RecipientDashboard() {
                 </div>
                 <ChevronRight className="h-6 w-6 text-gray-500" />
               </div>
-              <div className="mt-auto">
+              <div className="mt-auto p-2">
                 <p className="text-gray-400 text-sm">Total Salary</p>
                 <div className="flex items-baseline">
                   <h2 className="text-4xl font-bold">$4000</h2>
@@ -37,7 +37,7 @@ function RecipientDashboard() {
             </div>
 
             {/* Last Payment Card */}
-            <div className="bg-zinc-900 rounded-xl p-6 flex flex-col">
+            <div className="bg-black rounded-lg p-2  border border-[#2C2C2C] transition-all duration-300 hover:border-blue-500/20">
               <div className="flex justify-between items-center mb-8">
                 <div>
                   <Image
@@ -49,10 +49,10 @@ function RecipientDashboard() {
                     priority
                   />
                 </div>
-                <h1 className="text-[#B0B0B0] mr-20">Last Payment</h1>
+                <h1 className="text-[#B0B0B0] text-nowrap mr-20">Last Payment</h1>
                 <ChevronRight className="h-6 w-6 text-gray-500" />
               </div>
-              <div className="mt-auto">
+              <div className="mt-auto p-2">
                 <p className="text-gray-400 text-sm">Apr 25, 2025</p>
                 <div className="flex items-baseline">
                   <h2 className="text-4xl font-bold">$4000</h2>
@@ -62,7 +62,7 @@ function RecipientDashboard() {
             </div>
 
             {/* Next Payment Card */}
-            <div className="bg-zinc-900 rounded-xl p-6 flex flex-col">
+            <div className="bg-black rounded-lg p-2  border border-[#2C2C2C] transition-all duration-300 hover:border-blue-500/20">
               <div className="flex justify-between items-center mb-8">
                 <div>
                   <Image
@@ -74,10 +74,10 @@ function RecipientDashboard() {
                     priority
                   />
                 </div>
-                <h1 className="text-[#B0B0B0] mr-20">Next Payment</h1>
+                <h1 className="text-[#B0B0B0] mr-20 text-nowrap">Next Payment</h1>
                 <ChevronRight className="h-6 w-6 text-gray-500" />
               </div>
-              <div className="mt-auto">
+              <div className="mt-auto p-2">
                 <p className="text-gray-400 text-sm">May 30, 2025</p>
                 <div className="flex items-baseline">
                   <h2 className="text-4xl font-bold">$4000</h2>
@@ -90,7 +90,7 @@ function RecipientDashboard() {
           </div>
 
           {/* Payment Overview Section */}
-          <div className="bg-zinc-900 rounded-xl p-6">
+          <div className="bg-black rounded-lg p-4 md:p-6 border border-[#2C2C2C] transition-all duration-300 hover:border-blue-500/20">
             <div className="flex items-center gap-0.2 mb-6">
               <div>
                 <Image

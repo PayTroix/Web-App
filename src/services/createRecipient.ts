@@ -8,7 +8,7 @@ interface CreateRecipientParams {
   email: string;
   recipient_ethereum_address: string;
   // organization: number;
-  phone_number?: string;
+  recipient_phone?: string;
   salary: number;
   position?: string;
   token: string;
@@ -20,7 +20,7 @@ interface BatchRecipient {
   name: string;
   email: string;
   recipient_ethereum_address: string;
-  phone_number: string;
+  recipient_phone: string;
   salary: number;
   position: string;
 }
@@ -49,7 +49,7 @@ export async function createRecipientAtomic({
   email,
   recipient_ethereum_address,
   // organization,
-  phone_number,
+  recipient_phone,
   salary,
   position,
   token,
@@ -86,7 +86,7 @@ export async function createRecipientAtomic({
       email,
       recipient_ethereum_address: ethers.getAddress(recipient_ethereum_address),
       // organization,
-      phone_number,
+      recipient_phone,
       salary,
       position,
       status: 'active',
@@ -178,7 +178,7 @@ export async function createBatchRecipientsAtomic({
           email: recipient.email,
           recipient_ethereum_address: ethers.getAddress(recipient.recipient_ethereum_address),
           // organization: organizationId,
-          phone_number: recipient.phone_number,
+          recipient_phone: recipient.recipient_phone,
           salary: recipient.salary,
           position: recipient.position,
           status: 'active',

@@ -86,9 +86,9 @@ const WalletButton: React.FC<WalletButtonProps> = ({ className = '' }) => {
     return (
       <button
         onClick={handleConnect}
-        className={`bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 sm:px-6 rounded-lg flex items-center justify-center space-x-2 transition-all ${className}`}
+        className={`bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 sm:px-4 rounded-lg flex items-center justify-center transition-all ${className}`}
       >
-        <Wallet className="w-4 h-4 sm:w-5 sm:h-5" />
+        {/* <Wallet className="w-4 h-4 sm:w-5 sm:h-5" /> */}
         <span className="hidden sm:inline">Connect Wallet</span>
         <span className="sm:hidden">Connect</span>
       </button>

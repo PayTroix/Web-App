@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { JSX } from 'react/jsx-runtime';
 import WalletButton from './WalletButton';
-import CreateRecipient from './CreateRecipient';
+import LeaveRequest from './LeaveRequest';
 import { MdOutlineDashboard } from "react-icons/md";
 
 interface NavItem {
@@ -15,7 +15,7 @@ interface NavItem {
 }
 
 export const Header: FC = () => {
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showLeaveRequest, setShowLeaveRequest] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -47,7 +47,7 @@ export const Header: FC = () => {
         
         <div className="flex items-center gap-3 md:gap-6">
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => setShowLeaveRequest(true)}
             className="flex items-center gap-2 px-3 py-2 md:px-4  text-blue-400 rounded-lg transition-all text-sm md:text-base transform hover:scale-105 whitespace-nowrap"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 md:w-5 md:h-5">
@@ -56,8 +56,8 @@ export const Header: FC = () => {
               <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
-            <span className="hidden md:inline">Create Recipient</span>
-            <span className="md:hidden">Add</span>
+            <span className="">Leave Request</span>
+           
           </button>
 
           <WalletButton className="scale-90 md:scale-100" />
@@ -65,10 +65,10 @@ export const Header: FC = () => {
       </header>
 
       {/* Modal Overlay */}
-      {showCreateModal && (
+      {showLeaveRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center px-4">
           <div className="relative w-full max-w-4xl">
-            <CreateRecipient onClose={() => setShowCreateModal(false)} />
+            <LeaveRequest onClose={() => setShowLeaveRequest(false)} />
           </div>
         </div>
       )}
@@ -90,6 +90,18 @@ export const Sidebar: FC = () => {
     {
       label: 'Wallet',
       href: '/wallet',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Salary Advance',
+      href: '/salaryAdvance',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />

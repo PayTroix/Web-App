@@ -264,7 +264,7 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
           email: recipient.email,
           recipient_ethereum_address: recipient.recipient_ethereum_address,
           // organization: organizationId,
-          phone_number: '',
+          recipient_phone: '',
           salary: recipient.salary,
           position: recipient.position || '',
           token,
@@ -279,7 +279,7 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
             name: r.name,
             email: r.email,
             recipient_ethereum_address: r.recipient_ethereum_address,
-            phone_number: '',
+            recipient_phone: '',
             salary: r.salary,
             position: r.position || ''
           })),

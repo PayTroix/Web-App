@@ -1,5 +1,5 @@
 'use client';
-import { getToken, isTokenExpired, removeToken, storeToken } from '@/app/register/token';
+import { getToken, isTokenExpired, removeToken, storeToken } from '@/utils/token';
 import { profileService, web3AuthService } from '@/services/api';
 import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import { ethers } from 'ethers';
@@ -110,11 +110,11 @@ export const EmployeesContent = () => {
         removeToken();
         toast.error('Session expired.');
         setTimeout(() => {
-        router.replace('/');
-          }, 1500);
-        } else {
-            toast.error('Failed to load dashboard data\nPlease refresh the page.');
-        }
+          router.replace('/');
+        }, 1500);
+      } else {
+        toast.error('Failed to load dashboard data\nPlease refresh the page.');
+      }
     } finally {
       setLoading(false);
     }
@@ -307,14 +307,14 @@ export const EmployeesContent = () => {
             <h2 className="text-white text-lg font-medium">Recipients</h2>
           </div>
 
-          <button 
+          <button
             onClick={() => setShowCreateModal(true)}
             className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
-              
+
             </svg>
             Add Recipient
           </button>
@@ -391,7 +391,7 @@ export const EmployeesContent = () => {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center px-4">
           <div className="relative w-full max-w-4xl animate-fade-in">
-            <CreateRecipient 
+            <CreateRecipient
               onClose={() => setShowCreateModal(false)}
               onSuccess={handleCreateSuccess}
             />

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { profileService } from '@/services/api';
 import { useAppKitAccount } from '@reown/appkit/react';
-import { getToken } from '@/app/register/token';
+import { getToken } from '@/utils/token';
 import { showToast } from '@/utils/toast';
 import Layout from '@/components/Sidebar';
 

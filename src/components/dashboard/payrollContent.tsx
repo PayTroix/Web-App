@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { getToken, isTokenExpired } from '@/app/register/token';
+import { getToken, isTokenExpired } from '@/utils/token';
 import { profileService } from '@/services/api';
 import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import toast from 'react-hot-toast';
@@ -326,7 +326,7 @@ export const PayrollContent = () => {
               </svg>
             </div>
           </div>
-          
+
           <div className="mt-8 space-y-2">
             <p className="text-gray-400 text-sm">Treasury wallet balance</p>
             <div className="flex items-baseline gap-2">
@@ -378,8 +378,8 @@ export const PayrollContent = () => {
             <button
               onClick={() => setActiveTab('payment')}
               className={`px-4 py-2 flex items-center gap-2 text-sm font-medium rounded-lg ${activeTab === 'payment'
-                  ? 'text-blue-500 border border-blue-500/30'
-                  : 'text-gray-400'
+                ? 'text-blue-500 border border-blue-500/30'
+                : 'text-gray-400'
                 }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -391,8 +391,8 @@ export const PayrollContent = () => {
             <button
               onClick={() => setActiveTab('salary')}
               className={`px-4 py-2 flex items-center gap-2 text-sm font-medium rounded-lg ${activeTab === 'salary'
-                  ? 'bg-blue-600/10 text-blue-500 border border-blue-500/30'
-                  : 'text-gray-400'
+                ? 'bg-blue-600/10 text-blue-500 border border-blue-500/30'
+                : 'text-gray-400'
                 }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

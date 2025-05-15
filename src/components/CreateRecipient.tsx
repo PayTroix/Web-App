@@ -8,7 +8,7 @@ import { ethers } from 'ethers';
 import { profileService } from '@/services/api';
 import { useAppKitNetworkCore, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import { useAppKitAccount } from '@reown/appkit/react';
-import { getToken, isTokenExpired } from '@/app/register/token';
+import { getToken, isTokenExpired } from '@/utils/token';
 import abi from '@/services/abi.json';
 
 interface Recipient {
@@ -17,7 +17,7 @@ interface Recipient {
   recipient_ethereum_address: string;
   position: string;
   salary: string;
-  isExpanded?: boolean; 
+  isExpanded?: boolean;
 }
 
 interface CreateRecipientProps {
@@ -74,7 +74,7 @@ export default function CreateRecipient({ onClose, onSuccess }: CreateRecipientP
   };
 
   // In CreateRecipient component - fixed CSV validation:
-const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -95,9 +95,9 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
         }
 
         // Filter out invalid rows
-        const validData = parsedData.filter(item => 
-          item.name && 
-          item.email && 
+        const validData = parsedData.filter(item =>
+          item.name &&
+          item.email &&
           item.recipient_ethereum_address &&
           item.salary
         );
@@ -123,28 +123,28 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
 
   const useCsvData = () => {
     // Ensure data has expected fields
-    const validData = csvData.filter(item => 
-      item.name && 
-      item.email && 
+    const validData = csvData.filter(item =>
+      item.name &&
+      item.email &&
       item.recipient_ethereum_address &&
       item.salary
     );
-    
+
     if (validData.length < csvData.length) {
       toast(`${csvData.length - validData.length} invalid entries were filtered out.`, { icon: '⚠️' });
     }
-    
+
     if (validData.length === 0) {
       toast.error('No valid data found in CSV');
       return;
     }
-    
+
     // Add isExpanded property to each recipient
     const formattedData = validData.map(item => ({
       ...item,
       isExpanded: false
     }));
-    
+
     setRecipients(formattedData);
     setIsCsvPreview(false);
     if (fileInputRef.current) {
@@ -171,48 +171,48 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
 
   const handleSave = async () => {
     console.log('Save button clicked'); // Debug log
-    
+
     // Validation
     const validationErrors: string[] = [];
     console.log('Validating recipients:', recipients); // Debug log
-    
+
     recipients.forEach((recipient, index) => {
       if (!recipient.name.trim()) {
         validationErrors.push(`Recipient ${index + 1}: Name is required`);
       }
-      
+
       if (!recipient.email.trim() || !validateEmail(recipient.email)) {
         validationErrors.push(`Recipient ${index + 1}: Valid email is required`);
       }
-      
+
       if (!validateWalletAddress(recipient.recipient_ethereum_address)) {
         validationErrors.push(`Recipient ${index + 1}: Valid Ethereum wallet address is required`);
       }
-      
+
       const salary = parseFloat(recipient.salary);
       if (isNaN(salary) || salary <= 0) {
         validationErrors.push(`Recipient ${index + 1}: Valid salary greater than 0 is required`);
       }
     });
-    
+
     if (validationErrors.length > 0) {
       console.error('Validation errors:', validationErrors); // Debug log
       // toast.error(validationErrors.slice(0, 3).join('\n') + 
       //   (validationErrors.length > 3 ? `\n...and ${validationErrors.length - 3} more errors` : ''));
       return;
     }
-    
+
     // Wallet connection check
     if (!isConnected || !walletProvider) {
       console.error('Wallet not connected - isConnected:', isConnected, 'walletProvider:', walletProvider); // Debug log
       toast.error('Wallet is not connected. Please connect your wallet first.');
       return;
     }
-  
+
     try {
       setIsSubmitting(true);
       console.log('Submitting recipients...'); // Debug log
-      
+
       const token = getToken();
       if (!token || isTokenExpired()) {
         throw new Error('Authentication token not found');
@@ -229,7 +229,7 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
       const provider = new ethers.BrowserProvider(walletProvider, chainId);
       const signer = await provider.getSigner();
       console.log('Signer obtained:', signer); // Debug log
-  
+
       const factoryContractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS;
       if (!factoryContractAddress) {
         throw new Error('Factory contract address not found in environment variables');
@@ -243,8 +243,8 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
         throw new Error('Invalid contract address');
       }
       console.log('Contract address:', contractAddress); // Debug log
-  
-  
+
+
       // Prepare recipients data
       const formattedRecipients = recipients.map(recipient => ({
         ...recipient,
@@ -252,10 +252,10 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
         recipient_ethereum_address: ethers.getAddress(recipient.recipient_ethereum_address)
       }));
       console.log('Formatted recipients:', formattedRecipients); // Debug log
-  
-      
+
+
       // console.log('Organization ID:', organizationId); // Debug log
-  
+
       if (formattedRecipients.length === 1) {
         console.log('Creating single recipient'); // Debug log
         const [recipient] = formattedRecipients;
@@ -290,18 +290,18 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
         });
         console.log('Batch recipients created:', result); // Debug log
       }
-      
+
       console.log('Successfully created recipients'); // Debug log
       toast.success(
         `Successfully ${formattedRecipients.length > 1 ? 'created ' + formattedRecipients.length + ' recipients' : 'created recipient'}`
       );
-      
+
       onClose();
       if (onSuccess) onSuccess();
-  
+
     } catch (error) {
       console.error('Save error:', error); // Debug log
-      
+
       let errorMessage = 'Failed to save recipients';
       if (error instanceof Error) {
         errorMessage = error.message;
@@ -319,7 +319,7 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     }
   };
 
-  
+
   return (
     <div className="bg-black text-white rounded-2xl p-8 shadow-xl border border-[#00468C] relative">
       {/* Close Button */}
@@ -366,14 +366,14 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
               </table>
             </div>
             <div className="flex justify-end gap-4 mt-6">
-              <button 
+              <button
                 onClick={cancelCsvPreview}
                 disabled={isSubmitting}
                 className="border border-gray-600 px-4 py-2 rounded-md hover:bg-gray-800 transition"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={useCsvData}
                 disabled={isSubmitting}
                 className="bg-blue-600 px-6 py-2 text-white font-semibold rounded-md hover:bg-blue-700 transition"
@@ -390,7 +390,7 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
         {recipients.map((recipient, index) => (
           <div key={index} className="border border-gray-800 rounded-lg overflow-hidden">
             {/* Collapsed Header */}
-            <div 
+            <div
               className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-900 transition"
               onClick={() => toggleExpand(index)}
             >
@@ -526,13 +526,13 @@ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
 
       {/* Template + Save Button */}
       <div className="flex justify-between items-center mt-6">
-        <button 
+        <button
           className="border border-gray-600 px-4 py-2 rounded-md text-sm hover:bg-gray-800 transition"
           disabled={isSubmitting}
         >
           Download Template
         </button>
-        <button 
+        <button
           onClick={handleSave}
           disabled={isSubmitting}
           className={`bg-blue-600 px-6 py-2 text-white font-semibold rounded-md ${isSubmitting ? 'opacity-50' : 'hover:bg-blue-700'} transition`}

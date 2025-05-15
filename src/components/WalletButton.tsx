@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppKit, useAppKitAccount, useAppKitNetwork, useDisconnect } from '@reown/appkit/react';
 import { displayAddress } from '@/utils';
-import { ChevronDown, Wallet } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { mainnet, sepolia, lisk, liskSepolia, base, baseSepolia } from '@reown/appkit/networks';
-import { removeToken } from '@/app/register/token';
+import { removeToken } from '@/utils/token';
 
 type WalletButtonProps = {
   className?: string;
@@ -99,7 +99,7 @@ const WalletButton: React.FC<WalletButtonProps> = ({ className = '' }) => {
     <div className="flex items-center space-x-2">
       {/* Network Selector - Hidden on mobile when account menu is open */}
       <div className="relative hidden sm:block" ref={networkRef}>
-        <button 
+        <button
           onClick={handleNetworkToggle}
           className="flex items-center text-gray-300 border border-gray-700 rounded-lg px-3 py-1.5 text-sm hover:bg-gray-800 transition-colors"
           aria-label="Network selector"
@@ -107,16 +107,15 @@ const WalletButton: React.FC<WalletButtonProps> = ({ className = '' }) => {
           <span className="truncate max-w-[100px]">{chain?.name || 'Network'}</span>
           <ChevronDown className={`ml-1 w-4 h-4 transition-transform ${isNetworkMenuOpen ? 'rotate-180' : ''}`} />
         </button>
-        
+
         {isNetworkMenuOpen && (
           <div className="absolute mt-1 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
             {chains.map(network => (
               <button
                 key={network.id}
                 onClick={() => handleNetworkSwitch(network.id)}
-                className={`block w-full text-left px-4 py-2.5 text-sm hover:bg-gray-800 transition-colors ${
-                  network.id === chainId ? 'text-blue-500 font-medium' : 'text-gray-300'
-                }`}
+                className={`block w-full text-left px-4 py-2.5 text-sm hover:bg-gray-800 transition-colors ${network.id === chainId ? 'text-blue-500 font-medium' : 'text-gray-300'
+                  }`}
               >
                 {network.name}
               </button>
@@ -124,7 +123,7 @@ const WalletButton: React.FC<WalletButtonProps> = ({ className = '' }) => {
           </div>
         )}
       </div>
-      
+
       {/* Connected Account */}
       <div className="relative" ref={accountRef}>
         <button
@@ -138,7 +137,7 @@ const WalletButton: React.FC<WalletButtonProps> = ({ className = '' }) => {
           </span>
           <ChevronDown className={`ml-1 w-4 h-4 transition-transform ${isAccountMenuOpen ? 'rotate-180' : ''}`} />
         </button>
-        
+
         {isAccountMenuOpen && (
           <div className="absolute right-0 mt-1 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
             <div className="sm:hidden px-4 py-2.5 border-b border-gray-800">
@@ -171,9 +170,8 @@ const WalletButton: React.FC<WalletButtonProps> = ({ className = '' }) => {
                 <button
                   key={network.id}
                   onClick={() => handleNetworkSwitch(network.id)}
-                  className={`block w-full text-left px-4 py-2.5 text-sm hover:bg-gray-800 transition-colors ${
-                    network.id === chainId ? 'text-blue-500 font-medium' : 'text-gray-300'
-                  }`}
+                  className={`block w-full text-left px-4 py-2.5 text-sm hover:bg-gray-800 transition-colors ${network.id === chainId ? 'text-blue-500 font-medium' : 'text-gray-300'
+                    }`}
                 >
                   {network.name}
                 </button>

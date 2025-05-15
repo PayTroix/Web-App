@@ -12,7 +12,7 @@ import TotalEmployees from './TotalEmployees';
 import ActiveEmployees from './ActiveEmployees';
 import RecentActivity from './RecentActivity';
 import { PendingRequest, PendingPayrollVolume } from './PendingRequest';
-import { getToken, isTokenExpired, removeToken, storeToken } from '@/app/register/token';
+import { getToken, isTokenExpired, removeToken, storeToken } from '@/utils/token';
 
 interface DashboardData {
   // treasuryBalance: string;
@@ -32,10 +32,10 @@ interface DashboardData {
 
 // Default recent activities with icons
 const defaultRecentActivities = [
-  { 
-    id: '1', 
-    type: 'Employee Added', 
-    message: 'New employee was added', 
+  {
+    id: '1',
+    type: 'Employee Added',
+    message: 'New employee was added',
     time: '2 hours ago',
     icon: (
       <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500">
@@ -48,10 +48,10 @@ const defaultRecentActivities = [
       </div>
     )
   },
-  { 
-    id: '2', 
-    type: 'Payment Sent', 
-    message: 'Payroll was processed successfully', 
+  {
+    id: '2',
+    type: 'Payment Sent',
+    message: 'Payroll was processed successfully',
     time: '1 day ago',
     icon: (
       <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-500">
@@ -62,10 +62,10 @@ const defaultRecentActivities = [
       </div>
     )
   },
-  { 
-    id: '3', 
-    type: 'System Update', 
-    message: 'System update was completed successfully', 
+  {
+    id: '3',
+    type: 'System Update',
+    message: 'System update was completed successfully',
     time: '1 day ago',
     icon: (
       <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-500">
@@ -90,80 +90,80 @@ export const DashboardContent = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-        if (!isConnected || !address) return;
-        
-        setLoading(true);
-        try {
-            const provider = new ethers.BrowserProvider(walletProvider, chainId);
-            const signer = await provider.getSigner();
-            
-    
-            // If no token or token is expired, get a new one
-            const token = getToken();
-            if (!token || isTokenExpired()) {
-                // Get new token
-                const { nonce } = await web3AuthService.getNonce(address);
-                const message = `I'm signing my one-time nonce: ${nonce}`;
-                const signature = await signer.signMessage(message);
-                
-                const authResponse = await web3AuthService.login({
-                    address,
-                    signature
-                });
-                
-                storeToken(authResponse.access);
-            }
+      if (!isConnected || !address) return;
 
-          const [_orgProfile, notifications] = await Promise.all([
-            profileService.listOrganizationProfiles(token),
-            notificationsService.listNotifications(token)
-          ]);
+      setLoading(true);
+      try {
+        const provider = new ethers.BrowserProvider(walletProvider, chainId);
+        const signer = await provider.getSigner();
 
-          // Safely access recipients - handle potential undefined values
-          const recipients = _orgProfile[0].recipients || [];
-          const recipientsLength = Array.isArray(recipients) ? recipients.length : 0;
-          
-          // Safely access notifications - handle potential undefined values
-          const notificationsList = Array.isArray(notifications) ? notifications : [];
 
-       
-          const dashboardData: DashboardData = {
-            // treasuryBalance: `$${parseFloat(treasuryBalance).toLocaleString()}`,
-            totalEmployees: recipientsLength,
-            activeEmployees: recipientsLength,
-            performancePercentage: recipientsLength > 0 ? 
-              Math.round((recipientsLength / recipientsLength) * 100) : 0,
-            pendingRequests: 6, // Replace with actual data
-            pendingPayrollVolume: 6, // Replace with actual data
-            recentActivities: recipientsLength > 0 ? 
-                  notificationsList
-                    .slice(0, 5)
-                    .map((notification, index) => ({
-                      id: notification.id?.toString() || index.toString(),
-                      type: notification.type || 'Notification',
-                      message: notification.message || 'System notification',
-                      time: notification.created_at || 'Recently',
-                      icon: defaultRecentActivities[Math.min(index, defaultRecentActivities.length - 1)].icon 
-                    }))
-                  : []
-          };
+        // If no token or token is expired, get a new one
+        const token = getToken();
+        if (!token || isTokenExpired()) {
+          // Get new token
+          const { nonce } = await web3AuthService.getNonce(address);
+          const message = `I'm signing my one-time nonce: ${nonce}`;
+          const signature = await signer.signMessage(message);
 
-          setData(dashboardData);
-        } catch (error: unknown) {
-          console.error('Error fetching dashboard data:', error);
-          // If the error is due to token expiration, remove the token
-          if (error instanceof Error && 'response' in error && (error.response as { status?: number })?.status === 401) {
-              removeToken();
-              toast.error('Session expired.');
-              setTimeout(() => {
-              router.replace('/');
-            }, 1500);
-          } else {
-              toast.error('Failed to load dashboard data\nPlease refresh the page.');
-          }
-        } finally {
-            setLoading(false);
+          const authResponse = await web3AuthService.login({
+            address,
+            signature
+          });
+
+          storeToken(authResponse.access);
         }
+
+        const [_orgProfile, notifications] = await Promise.all([
+          profileService.listOrganizationProfiles(token),
+          notificationsService.listNotifications(token)
+        ]);
+
+        // Safely access recipients - handle potential undefined values
+        const recipients = _orgProfile[0].recipients || [];
+        const recipientsLength = Array.isArray(recipients) ? recipients.length : 0;
+
+        // Safely access notifications - handle potential undefined values
+        const notificationsList = Array.isArray(notifications) ? notifications : [];
+
+
+        const dashboardData: DashboardData = {
+          // treasuryBalance: `$${parseFloat(treasuryBalance).toLocaleString()}`,
+          totalEmployees: recipientsLength,
+          activeEmployees: recipientsLength,
+          performancePercentage: recipientsLength > 0 ?
+            Math.round((recipientsLength / recipientsLength) * 100) : 0,
+          pendingRequests: 6, // Replace with actual data
+          pendingPayrollVolume: 6, // Replace with actual data
+          recentActivities: recipientsLength > 0 ?
+            notificationsList
+              .slice(0, 5)
+              .map((notification, index) => ({
+                id: notification.id?.toString() || index.toString(),
+                type: notification.type || 'Notification',
+                message: notification.message || 'System notification',
+                time: notification.created_at || 'Recently',
+                icon: defaultRecentActivities[Math.min(index, defaultRecentActivities.length - 1)].icon
+              }))
+            : []
+        };
+
+        setData(dashboardData);
+      } catch (error: unknown) {
+        console.error('Error fetching dashboard data:', error);
+        // If the error is due to token expiration, remove the token
+        if (error instanceof Error && 'response' in error && (error.response as { status?: number })?.status === 401) {
+          removeToken();
+          toast.error('Session expired.');
+          setTimeout(() => {
+            router.replace('/');
+          }, 1500);
+        } else {
+          toast.error('Failed to load dashboard data\nPlease refresh the page.');
+        }
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchData();
@@ -176,7 +176,7 @@ export const DashboardContent = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="flex flex-col gap-6">
       {/* Summary Stats Cards */}
@@ -188,9 +188,9 @@ export const DashboardContent = () => {
         <TotalEmployees totalEmployees={data ? data.totalEmployees : 0} />
 
         {/* Active Employees */}
-        <ActiveEmployees 
-          activeEmployees={data?.activeEmployees || 0} 
-          performancePercentage={data?.performancePercentage || 0} 
+        <ActiveEmployees
+          activeEmployees={data?.activeEmployees || 0}
+          performancePercentage={data?.performancePercentage || 0}
         />
       </div>
 

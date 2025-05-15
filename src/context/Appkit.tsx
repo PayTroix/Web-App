@@ -3,10 +3,9 @@
 import { createAppKit } from "@reown/appkit/react";
 import { EthersAdapter } from "@reown/appkit-adapter-ethers";
 import { mainnet, sepolia, lisk, liskSepolia, base, baseSepolia } from "@reown/appkit/networks";
-import { projectId } from "@/config/Appkit";
 import { ReactNode } from "react";
 
-
+export const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
 if (!projectId) {
   throw new Error('Project ID is not defined')
 }

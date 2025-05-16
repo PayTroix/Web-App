@@ -6,7 +6,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { profileService, web3AuthService } from '../../services/api';
 import Link from 'next/link';
-import { getToken, isTokenExpired, removeToken, storeToken } from '@/app/register/token';
+import { getToken, isTokenExpired, removeToken, storeToken } from '@/utils/token';
 import { ethers } from 'ethers';
 
 type AuthResponse = {
@@ -27,7 +27,7 @@ type ApiError = {
   };
 };
 
-type VerifyAddressResponse = {
+export type VerifyAddressResponse = {
   exists: boolean;
   user_type?: 'organization' | 'recipient';
 };
@@ -127,8 +127,11 @@ export default function HeroSection() {
         if (userType === 'organization') {
           router.push('/dashboard');
         } else if (userType === 'recipient') {
-          router.push('/recipient-dashboard');
-        } else {
+          router.push('/recipient');
+        } else if (userType === "both") {
+          router.push('/roles');
+        }
+        else {
           toast.error('Organization profile not found. Please complete registration.', { id: loadingToast });
           router.push('/register');
         }

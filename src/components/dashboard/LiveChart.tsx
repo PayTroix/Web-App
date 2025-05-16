@@ -17,6 +17,17 @@ const chartData = [
   { name: '10/25', payroll: 55 },
 ];
 
+type DotProps = {
+  cx: number;
+  cy: number;
+  index: number;
+  key?: string | number;
+  value?: number;
+  dataKey?: string;
+  payload?: { name: string; payroll: number };
+  points?: Array<{ x: number; y: number }>;
+};
+
 // Custom tooltip component
 const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
   if (active && payload && payload.length) {
@@ -30,10 +41,9 @@ const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
 };
 
 const LiveLineChart = () => {
-  const [activeDataIndex, setActiveDataIndex] = useState<number | null>(4); // Default to 04/25 as active
+  const [activeDataIndex, setActiveDataIndex] = useState<number | null>(4);
 
-  const CustomizedDot = (props: { cx: number; cy: number; index: number }) => {
-    const { cx, cy, index } = props;
+  const CustomizedDot = ({ cx, cy, index }: Omit<DotProps, 'key'>) => {
     return (
       <circle 
         cx={cx} 
@@ -112,14 +122,17 @@ const LiveLineChart = () => {
           )}
           
           <Line 
-            type="monotone" 
-            dataKey="payroll" 
-            stroke="#3b82f6" 
-            strokeWidth={3}
-            activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
-            dot={(props) => <CustomizedDot {...props} />}
-            isAnimationActive={true}
-          />
+              type="monotone" 
+              dataKey="payroll" 
+              stroke="#3b82f6" 
+              strokeWidth={3}
+              activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
+              dot={(props: DotProps) => {
+                const { key, ...restProps } = props;
+                return <CustomizedDot key={key} {...restProps} />;
+              }}
+              isAnimationActive={true}
+            />
         </LineChart>
       </ResponsiveContainer>
     </div>

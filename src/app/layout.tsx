@@ -2,12 +2,13 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
+import { Toaster } from "react-hot-toast";
 
 const inter = Inter({ subsets: ["latin"] })
 
 //Appkit
-import { headers } from 'next/headers' 
-import ContextProvider from '@/context/Appkit'
+import { AppKit } from '@/context/Appkit'
+
 
 export const metadata: Metadata = {
   title: "PayTroix - Web3 Payroll Solution",
@@ -21,13 +22,23 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
 
-  //Appkit Intergration
-  const headersObj = await headers();
-  const cookies = headersObj.get('cookie')
-  
   return (
     <html lang="en">
-      <body className={inter.className}><ContextProvider cookies={cookies}>{children}</ContextProvider>
+      <body className={inter.className}>
+        <AppKit>{children}
+          <Toaster
+            position="top-right"
+            reverseOrder={false}
+            toastOptions={{
+              className: '',
+              duration: 5000,
+              style: {
+                background: '#1A1A1A',
+                color: '#fff',
+              },
+            }}
+          />
+        </AppKit>
       </body>
     </html>
   )

@@ -2,12 +2,12 @@
 
 import React from 'react';
 import Layout from '@/components/Sidebar';
-import SalaryAdvManagement from '@/components/dashboard/SalaryAdvManagement';
+import SalaryAdvDetails from '@/components/dashboard/SalaryAdvDetails';
 
 function Employees() {
   return (
     <Layout>
-     <SalaryAdvManagement/>
+     <SalaryAdvDetails/>
     </Layout>
   );
 }

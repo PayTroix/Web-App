@@ -3,7 +3,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function SalaryAdvManagement() {
+export default function SalaryAdvDetails() {
   const [isApproved, setIsApproved] = useState(false);
   const [isDeclined, setIsDeclined] = useState(false);
 

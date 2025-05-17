@@ -26,7 +26,7 @@ export default function LeaveManagement() {
                     </div>
                    
                  
-              <div>
+              <div className='mt-12'>
               <h2 className="text-4xl font-bold">4</h2>
               <p className="text-neutral-400 text-sm">Approved This Month</p>
               </div>
@@ -75,8 +75,10 @@ export default function LeaveManagement() {
                   <X className="text-red-500" size={24} />
                 </div>
               </div>
-              <h2 className="text-4xl font-bold">2</h2>
+              <div className='mt-12'>
+                <h2 className="text-4xl font-bold">2</h2>
               <p className="text-neutral-400 text-sm">Declined Requests</p>
+              </div>
             </div>
            
           </div>
@@ -150,7 +152,7 @@ export default function LeaveManagement() {
                   <span className="text-green-500">Approve</span>
                 </td>
                 <td className="py-4">
-                  <button className="bg-blue-600 text-white rounded px-5 py-2">View</button>
+                  <Link href="/leaveManagementDetails" className="bg-blue-600 text-white rounded px-5 py-2">View</Link>
                 </td>
               </tr>
 

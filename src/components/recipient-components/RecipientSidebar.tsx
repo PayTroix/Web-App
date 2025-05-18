@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { JSX } from 'react/jsx-runtime';
-import WalletButton from './WalletButton';
+import WalletButton from '../WalletButton';
 import LeaveRequest from './LeaveRequest';
 import { MdOutlineDashboard } from "react-icons/md";
 
@@ -84,7 +84,7 @@ export const Sidebar: FC = () => {
   const mainNavItems: NavItem[] = [
     {
       label: 'Dashboard',
-      href: '/dashboard',
+      href: '/recipient',
       icon: <MdOutlineDashboard className="text-blue-500" size={20} />,
     },
     {
@@ -101,7 +101,7 @@ export const Sidebar: FC = () => {
     },
     {
       label: 'Salary Advance',
-      href: '/salaryAdvance',
+      href: '/salary-advance',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />

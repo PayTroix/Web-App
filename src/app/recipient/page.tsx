@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import Layout from "@/components/RecipientSidebar";
+import Layout from "@/components/recipient-components/RecipientSidebar";
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 

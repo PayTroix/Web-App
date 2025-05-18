@@ -108,14 +108,16 @@ export default function HeroSection() {
       }
 
       let token = getToken();
-      if (!token || isTokenExpired()) {
-        toast.loading('Authentication required', { id: loadingToast });
+      const needsAuthentication = !token || isTokenExpired();
+
+      if (needsAuthentication) {
+        toast.loading('Authenticating...', { id: loadingToast });
         const loginSuccess = await login();
         if (!loginSuccess) {
           toast.error('Authentication failed', { id: loadingToast });
           return;
         }
-        token = getToken();
+        token = getToken(); // Get fresh token after login
       }
 
       try {
@@ -130,36 +132,43 @@ export default function HeroSection() {
           router.push('/recipient');
         } else if (userType === "both") {
           router.push('/roles');
-        }
-        else {
+        } else {
           toast.error('Organization profile not found. Please complete registration.', { id: loadingToast });
           router.push('/register');
         }
       } catch (orgError: unknown) {
-        if (
-          typeof orgError === 'object' &&
-          orgError !== null &&
-          'response' in orgError &&
-          (orgError as ApiError).response?.data?.detail === 'Organization profile not found.'
-        ) {
+        const apiError = orgError as ApiError;
+        if (apiError.response?.data?.detail === 'Organization profile not found.') {
           toast.error('Organization profile not found. Please complete registration.', { id: loadingToast });
           router.push('/register');
           return;
         }
+
+        // Handle expired token during organization profile fetch
+        if (apiError.response?.data?.code === 'token_not_valid') {
+          removeToken();
+          toast.loading('Re-authenticating...', { id: loadingToast });
+          const loginSuccess = await login();
+          if (loginSuccess) {
+            checkUserAndRedirect(); // Retry the entire process after successful login
+            return;
+          }
+        }
+
         throw orgError;
       }
     } catch (error: unknown) {
       console.error('Error checking user:', error);
+      const apiError = error as ApiError;
 
-      if (typeof error === 'object' && error !== null && 'response' in error) {
-        const err = error as { response?: { data?: { code?: string; exists?: boolean } } };
-        if (err.response?.data?.code === 'token_not_valid' || err.response?.data?.exists === false) {
-          removeToken();
-          toast.error('Your session has expired. Please sign in again.', { id: loadingToast });
-          const loginSuccess = await login();
-          if (loginSuccess) {
-            checkUserAndRedirect(); // Retry the process after successful login
-          }
+      if (apiError.response?.data?.code === 'token_not_valid' ||
+        apiError.response?.data?.exists === false) {
+        removeToken();
+        toast.loading('Re-authenticating...', { id: loadingToast });
+        const loginSuccess = await login();
+        if (loginSuccess) {
+          checkUserAndRedirect(); // Retry after successful login
+          return;
         }
       } else {
         toast.error('An error occurred. Please try again.', { id: loadingToast });

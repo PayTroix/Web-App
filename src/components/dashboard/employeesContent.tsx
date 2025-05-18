@@ -118,7 +118,7 @@ export const EmployeesContent = () => {
     } finally {
       setLoading(false);
     }
-  }, [isConnected, address, walletProvider, chainId, balances.USDT, balances.USDC, balances.loading, getTokenBalances]);
+  }, [isConnected, address, walletProvider, chainId, balances.USDT, balances.USDC, balances.loading, getTokenBalances, router]);
 
   useEffect(() => {
     fetchData();

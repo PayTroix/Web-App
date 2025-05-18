@@ -40,6 +40,17 @@ const transitionClasses = {
   input: "transition-all duration-200 ease-in-out focus:border-blue-500/50",
 };
 
+// Add constants for supported tokens and months
+const SUPPORTED_TOKENS = [
+  { symbol: 'USDT', name: 'Tether USD' },
+  { symbol: 'USDC', name: 'USD Coin' }
+];
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 export const PayrollContent = () => {
   const [activeTab, setActiveTab] = useState('payment');
   const [selectedGroup, setSelectedGroup] = useState('active');
@@ -52,8 +63,13 @@ export const PayrollContent = () => {
   const { balances, getTokenBalances } = useTokenBalances();
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [activeEmployees, setActiveEmployees] = useState(0);
-  const [, setPendingPayments] = useState(0);
+  // const [, setPendingPayments] = useState(0);
   const [isDisbursing, setIsDisbursing] = useState(false);
+
+  // Add new state variables
+  const [selectedToken, setSelectedToken] = useState(SUPPORTED_TOKENS[0].symbol);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,46 +82,29 @@ export const PayrollContent = () => {
 
         await getTokenBalances(address, walletProvider);
 
-        // const recipientProfiles: RecipientProfiles = await profileService.getOrganizationRecipients(token);
         const orgProfile = await profileService.listOrganizationProfiles(token);
         const recipientProfiles: RecipientProfiles = orgProfile[0];
 
-        // Check if recipientProfiles and recipientProfiles.recipients exist before accessing properties
         if (recipientProfiles && recipientProfiles.recipients) {
-          setTotalEmployees(recipientProfiles.recipients.length);
-          const activeCount = recipientProfiles.recipients.filter((e: Recipient) => e.status === 'active').length;
+          const allRecipients = recipientProfiles.recipients;
+          setTotalEmployees(allRecipients.length);
+
+          // Filter active employees
+          const activeCount = allRecipients.filter(r => r.status === 'active').length;
           setActiveEmployees(activeCount);
-          setPendingPayments(Math.floor(activeCount * 0.3));
 
-          // Update the mockPayrollData mapping
-          const mockPayrollData = recipientProfiles.recipients.slice(0, 5).map((recipient: Recipient) => {
-            let status: 'Completed' | 'Pending' | 'Failed';
-            if (recipient.status === 'completed') {
-              status = 'Completed';
-            } else if (recipient.status === 'failed') {
-              status = 'Failed';
-            } else {
-              status = 'Pending';
-            }
+          // Update employees based on status
+          const filteredEmployees = allRecipients.slice(0, 5).map((recipient: Recipient) => ({
+            id: recipient.id,
+            name: recipient.name || 'Unknown',
+            avatar: '',
+            date: new Date().toLocaleString('default', { month: 'long' }),
+            salary: `$${recipient.salary || '0'}(${selectedToken})`,
+            status: (recipient.status === 'active' ? 'Completed' :
+              recipient.status === 'on_leave' ? 'Pending' : 'Failed') as 'Completed' | 'Pending' | 'Failed'
+          }));
 
-            return {
-              id: recipient.id,
-              name: recipient.name || 'Unknown',
-              avatar: '',
-              date: new Date().toLocaleString('default', { month: 'long' }),
-              salary: `$${recipient.salary || '0'}(USDT)`,
-              status
-            };
-          });
-
-          setEmployees(mockPayrollData);
-        } else {
-          // Handle the case when recipients is undefined
-          console.warn('No recipients data found');
-          setTotalEmployees(0);
-          setActiveEmployees(0);
-          setPendingPayments(0);
-          setEmployees([]);
+          setEmployees(filteredEmployees);
         }
       } catch (error) {
         console.error('Error fetching payroll data:', error);
@@ -118,19 +117,31 @@ export const PayrollContent = () => {
     fetchData();
   }, [isConnected, address, walletProvider, chainId, getTokenBalances]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showMonthPicker && !target.closest('.month-picker-container')) {
+        setShowMonthPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMonthPicker]);
+
   // Update the renderStatus function to handle all possible states
-  const renderStatus = (status: string) => {
-    switch (status) {
-      case 'Completed':
-        return <span className="text-green-500">{status}</span>;
-      case 'Failed':
-        return <span className="text-red-500">{status}</span>;
-      case 'Pending':
-        return <span className="text-yellow-500">{status}</span>;
-      default:
-        return <span className="text-gray-400">{status}</span>;
-    }
-  };
+  // const renderStatus = (status: string) => {
+  //   switch (status) {
+  //     case 'Completed':
+  //       return <span className="text-green-500">{status}</span>;
+  //     case 'Failed':
+  //       return <span className="text-red-500">{status}</span>;
+  //     case 'Pending':
+  //       return <span className="text-yellow-500">{status}</span>;
+  //     default:
+  //       return <span className="text-gray-400">{status}</span>;
+  //   }
+  // };
 
   const handleDisburse = async () => {
     try {
@@ -154,20 +165,37 @@ export const PayrollContent = () => {
 
       // Get organization profile to get the ID
       const orgProfile = await profileService.listOrganizationProfiles(token);
-      const organizationId = orgProfile[0]?.id; // Get the organization ID
+      const organizationId = orgProfile[0]?.id;
 
       if (!organizationId) {
         throw new Error('Organization ID not found');
       }
 
       const recipientProfiles = orgProfile[0]?.recipients || [];
+
+      // Update the filtering logic to match backend status
       const filteredRecipients = selectedGroup === 'all'
         ? recipientProfiles
-        : recipientProfiles.filter(r => r.status === selectedGroup);
+        : recipientProfiles.filter(r => {
+          if (selectedGroup === 'active') return r.status === 'active';
+          if (selectedGroup === 'onLeave') return r.status === 'on_leave';
+          return false;
+        });
 
       if (filteredRecipients.length === 0) {
         toast.error('No recipients found for selected group');
-        return;
+        throw new Error('No recipients found for selected group');
+      }
+
+      // Validate recipient data
+      const invalidRecipients = filteredRecipients.filter(
+        r => !r.recipient_ethereum_address || !r.salary || r.salary <= 0
+      );
+
+      if (invalidRecipients.length > 0) {
+        throw new Error(
+          `Invalid recipient data found for: ${invalidRecipients.map(r => r.name).join(', ')}`
+        );
       }
 
       const provider = new ethers.BrowserProvider(walletProvider, chainId);
@@ -180,6 +208,10 @@ export const PayrollContent = () => {
 
       const factoryContract = new ethers.Contract(factoryContractAddress, abi, provider);
       const contractAddress = await factoryContract.getOrganizationContract(address);
+
+      if (!contractAddress) {
+        throw new Error('Organization contract address not found');
+      }
 
       const payrollContract = new ethers.Contract(contractAddress, orgAbi, signer);
 
@@ -197,7 +229,14 @@ export const PayrollContent = () => {
       );
 
       // Calculate total net amount
-      const totalNetAmount = filteredRecipients.reduce((sum, r) => sum + (r.salary || 0), 0);
+      const totalNetAmount = filteredRecipients.reduce(
+        (sum, r) => sum + (r.salary || 0),
+        0
+      );
+
+      if (totalNetAmount <= 0) {
+        throw new Error('Total disbursement amount must be greater than 0');
+      }
 
       // Use contract's calculateGrossAmount function
       const totalGrossAmount = await payrollContract.calculateGrossAmount(
@@ -208,14 +247,11 @@ export const PayrollContent = () => {
       const currentAllowance = await usdtContract.allowance(address, contractAddress);
 
       if (currentAllowance < totalGrossAmount) {
-        toast.loading('Approving USDT...');
         const approveTx = await usdtContract.approve(
           contractAddress,
-          totalGrossAmount // Using gross amount from contract
+          totalGrossAmount
         );
         await approveTx.wait();
-        toast.dismiss();
-        toast.success('USDT approved');
       }
 
       // Check balance
@@ -226,12 +262,27 @@ export const PayrollContent = () => {
         );
       }
 
-      if (filteredRecipients.length === 1) {
-        const recipient = filteredRecipients[0];
+      // Prepare recipients data
+      const recipients = filteredRecipients.map(r => ({
+        id: r.id,
+        address: r.recipient_ethereum_address,
+        amount: ethers.parseUnits(r.salary?.toString() || '0', 6),
+      }));
+
+      console.log('Disbursement data:', {
+        recipients,
+        tokenAddress: process.env.NEXT_PUBLIC_USDT_ADDRESS,
+        paymentMonth,
+        contractAddress,
+        organizationId
+      });
+
+      if (recipients.length === 1) {
+        const recipient = recipients[0];
         await disburseSalaryAtomic({
           recipientId: recipient.id,
-          recipientAddress: recipient.recipient_ethereum_address,
-          amount: recipient.salary,
+          recipientAddress: recipient.address,
+          amount: recipient.amount,
           tokenAddress: usdtAddress,
           paymentMonth,
           token,
@@ -241,11 +292,7 @@ export const PayrollContent = () => {
         });
       } else {
         await batchDisburseSalaryAtomic({
-          recipients: filteredRecipients.map(r => ({
-            id: r.id,
-            address: r.recipient_ethereum_address,
-            amount: r.salary,
-          })),
+          recipients,
           tokenAddress: usdtAddress,
           paymentMonth,
           token,
@@ -263,9 +310,20 @@ export const PayrollContent = () => {
       setActiveEmployees(updatedRecipients.filter(r => r.status === 'active').length);
 
       toast.success('Salary disbursement completed successfully!');
-    } catch (error) {
-      console.error('Disbursement error:', error);
-      toast.error(error instanceof Error ? error.message : 'Unknown disbursement error');
+    } catch (error: unknown) {
+      console.error('Detailed disbursement error:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        code: error && typeof error === 'object' && 'code' in error ? error.code : undefined,
+        data: error && typeof error === 'object' && 'data' in error ? error.data : undefined
+      });
+      
+      // Throw a more descriptive error
+      throw new Error(
+        error instanceof Error ? error.message : 
+        (error && typeof error === 'object' && 'data' in error ? String(error.data) : 
+        'Failed to process disbursement. Please check console for details.')
+      );
     } finally {
       setIsDisbursing(false);
     }
@@ -301,6 +359,20 @@ export const PayrollContent = () => {
       return employees.filter(emp => emp.status !== 'Pending').reduce((sum, emp) => sum + parseFloat(emp.salary.replace('$', '').split('(')[0]), 0);
     } else {
       return employees.filter(emp => emp.status === 'Pending').reduce((sum, emp) => sum + parseFloat(emp.salary.replace('$', '').split('(')[0]), 0);
+    }
+  };
+
+  // Add this function to filter employees based on selected group
+  const getFilteredEmployees = () => {
+    switch (selectedGroup) {
+      case 'all':
+        return employees;
+      case 'active':
+        return employees.filter(emp => emp.status === 'Completed');
+      case 'onLeave':
+        return employees.filter(emp => emp.status === 'Pending');
+      default:
+        return employees;
     }
   };
 
@@ -491,21 +563,102 @@ export const PayrollContent = () => {
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="text-white">USDT</div>
-                    <div className="text-gray-500 text-sm">Select Currency</div>
+                    <div className="text-white">Currency</div>
+                    <select
+                      value={selectedToken}
+                      onChange={(e) => setSelectedToken(e.target.value)}
+                      className={`bg-transparent text-gray-400 text-sm w-full mt-1 focus:outline-none ${transitionClasses.input}`}
+                    >
+                      {SUPPORTED_TOKENS.map(token => (
+                        <option key={token.symbol} value={token.symbol}>
+                          {token.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
 
               <div className={`border border-gray-800 rounded-lg p-4 ${transitionClasses.card}`}>
-                <div className="text-white">Payment Month</div>
-                <input
-                  type="text"
-                  placeholder="E.g. April 2025"
-                  value={paymentMonth}
-                  onChange={(e) => setPaymentMonth(e.target.value)}
-                  className={`bg-transparent text-gray-400 text-sm w-full mt-1 focus:outline-none ${transitionClasses.input}`}
-                />
+                <div className="text-white mb-2">Payment Month</div>
+                <div className="relative month-picker-container">
+                  <div
+                    onClick={() => setShowMonthPicker(!showMonthPicker)}
+                    className={`
+                      flex items-center justify-between
+                      bg-transparent text-gray-400 cursor-pointer
+                      py-2 px-3 rounded-md border border-gray-800
+                      ${transitionClasses.input}
+                    `}
+                  >
+                    <span>{paymentMonth || 'Select month and year'}</span>
+                    <svg
+                      className={`w-4 h-4 transition-transform ${showMonthPicker ? 'transform rotate-180' : ''}`}
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </div>
+
+                  {showMonthPicker && (
+                    <div className="absolute z-50 mt-2 w-full bg-gray-900 rounded-lg shadow-lg border border-gray-800">
+                      <div className="p-4">
+                        {/* Year selector */}
+                        <div className="flex items-center justify-between mb-4">
+                          <button
+                            className="p-1 hover:bg-gray-800 rounded"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedYear(selectedYear - 1);
+                            }}
+                          >
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path d="M15 18l-6-6 6-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </button>
+                          <span className="text-white">{selectedYear}</span>
+                          <button
+                            className="p-1 hover:bg-gray-800 rounded"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedYear(selectedYear + 1);
+                            }}
+                          >
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path d="M9 18l6-6-6-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </button>
+                        </div>
+
+                        {/* Months grid */}
+                        <div className="grid grid-cols-3 gap-2">
+                          {MONTHS.map((month) => (
+                            <button
+                              key={month}
+                              className={`
+                                p-2 text-sm rounded-md transition-colors
+                                ${paymentMonth === `${month} ${selectedYear}`
+                                  ? 'bg-blue-600 text-white'
+                                  : 'text-gray-400 hover:bg-gray-800'
+                                }
+                              `}
+                              onClick={() => {
+                                setPaymentMonth(`${month} ${selectedYear}`);
+                                setShowMonthPicker(false);
+                              }}
+                            >
+                              {month}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

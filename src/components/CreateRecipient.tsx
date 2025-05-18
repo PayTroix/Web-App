@@ -5,7 +5,6 @@ import { TbCurrencyEthereum } from "react-icons/tb";
 import toast from 'react-hot-toast';
 import { createBatchRecipientsAtomic, createRecipientAtomic } from '@/services/createRecipient';
 import { ethers } from 'ethers';
-import { profileService } from '@/services/api';
 import { useAppKitNetworkCore, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import { useAppKitAccount } from '@reown/appkit/react';
 import { getToken, isTokenExpired } from '@/utils/token';

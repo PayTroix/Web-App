@@ -167,7 +167,7 @@ export const DashboardContent = () => {
     };
 
     fetchData();
-  }, [isConnected, address, walletProvider, chainId]);
+  }, [isConnected, address, walletProvider, chainId, router]);
 
   if (loading) {
     return (

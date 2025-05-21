@@ -6,14 +6,14 @@ const ActiveEmployees = ({ activeEmployees = 0, performancePercentage = 0 }) => 
       <div className="relative w-24 h-24">
         <svg viewBox="0 0 120 120" className="w-full h-full">
           <circle cx="60" cy="60" r="54" fill="none" stroke="white" strokeWidth="6" />
-          <circle 
-            cx="60" 
-            cy="60" 
-            r="54" 
-            fill="none" 
-            stroke="#3b82f6" 
-            strokeWidth="8" 
-            strokeDasharray="339.3" 
+          <circle
+            cx="60"
+            cy="60"
+            r="54"
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth="8"
+            strokeDasharray="339.3"
             strokeDashoffset={339.3 * (1 - performancePercentage / 100)} // Calculate based on percentage
             transform="rotate(-90 60 60)"
           />

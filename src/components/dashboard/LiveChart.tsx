@@ -33,7 +33,7 @@ const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-blue-600 text-white text-xs px-2 py-1 rounded text-center">
-        Payroll<br/>{payload[0].value}
+        Payroll<br />{payload[0].value}
       </div>
     );
   }
@@ -45,10 +45,10 @@ const LiveLineChart = () => {
 
   const CustomizedDot = ({ cx, cy, index }: Omit<DotProps, 'key'>) => {
     return (
-      <circle 
-        cx={cx} 
-        cy={cy} 
-        r={index === activeDataIndex ? 6 : 4} 
+      <circle
+        cx={cx}
+        cy={cy}
+        r={index === activeDataIndex ? 6 : 4}
         fill="#3b82f6"
         stroke="white"
         strokeWidth={2}
@@ -71,9 +71,9 @@ const LiveLineChart = () => {
           </svg>
         </button>
       </div>
-      
+
       <ResponsiveContainer width="100%" height={280}>
-        <LineChart 
+        <LineChart
           data={chartData}
           margin={{ top: 5, right: 20, left: 0, bottom: 20 }}
           onMouseMove={(e) => {
@@ -84,22 +84,22 @@ const LiveLineChart = () => {
         >
           <defs>
             <linearGradient id="colorPayroll" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
+              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
             </linearGradient>
           </defs>
-          
+
           <CartesianGrid stroke="#2C2C2C" vertical={false} />
-          
-          <XAxis 
-            dataKey="name" 
+
+          <XAxis
+            dataKey="name"
             axisLine={false}
             tickLine={false}
             tick={{ fill: '#6B7280', fontSize: 10 }}
             tickMargin={10}
           />
-          
-          <YAxis 
+
+          <YAxis
             axisLine={false}
             tickLine={false}
             tickCount={6}
@@ -107,32 +107,32 @@ const LiveLineChart = () => {
             tick={{ fill: '#6B7280', fontSize: 10 }}
             tickFormatter={(value) => `${value}`}
           />
-          
-          <Tooltip 
+
+          <Tooltip
             content={<CustomTooltip />}
             cursor={false}
           />
-          
+
           {activeDataIndex !== null && (
-            <ReferenceLine 
-              x={chartData[activeDataIndex].name} 
-              stroke="#3b82f6" 
+            <ReferenceLine
+              x={chartData[activeDataIndex].name}
+              stroke="#3b82f6"
               strokeDasharray="5 5"
             />
           )}
-          
-          <Line 
-              type="monotone" 
-              dataKey="payroll" 
-              stroke="#3b82f6" 
-              strokeWidth={3}
-              activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
-              dot={(props: DotProps) => {
-                const { key, ...restProps } = props;
-                return <CustomizedDot key={key} {...restProps} />;
-              }}
-              isAnimationActive={true}
-            />
+
+          <Line
+            type="monotone"
+            dataKey="payroll"
+            stroke="#3b82f6"
+            strokeWidth={3}
+            activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
+            dot={(props: DotProps) => {
+              const { key, ...restProps } = props;
+              return <CustomizedDot key={key} {...restProps} />;
+            }}
+            isAnimationActive={true}
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>

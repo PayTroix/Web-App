@@ -17,7 +17,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities = [] }) => {
   return (
     <div className="bg-black border border-[#2C2C2C] rounded-lg p-6 col-span-2">
       <h2 className="text-white text-lg font-medium mb-6">Recent Activity</h2>
-      
+
       <div className="space-y-6">
         {activities.length > 0 ? (
           activities.map(activity => (
@@ -34,7 +34,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities = [] }) => {
           <p className="text-gray-400">No recent activities</p>
         )}
       </div>
-      
+
       <div className="mt-6 pt-4">
         <Link href="/activity" className="text-blue-500 text-sm flex items-center">
           View all activity

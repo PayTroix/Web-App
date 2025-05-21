@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { getToken, isTokenExpired } from '@/utils/token';
-import { profileService } from '@/services/api';
+import { profileService, payrollService, Payroll, RecipientProfile } from '@/services/api';
 import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import toast from 'react-hot-toast';
 import useTokenBalances from '@/hooks/useBalance';
@@ -9,6 +9,7 @@ import { ethers } from 'ethers';
 import abi from '@/services/abi.json';
 import orgAbi from '@/services/organization_abi.json';
 import { batchDisburseSalaryAtomic, disburseSalaryAtomic } from '@/services/payRoll';
+import { useWalletRedirect } from '@/hooks/useWalletRedirect';
 
 // Update the Employee interface to match backend status types
 interface Employee {
@@ -33,6 +34,15 @@ interface RecipientProfiles {
   recipients: Recipient[];
 }
 
+// interface Payroll {
+//   id: number;
+//   recipient: string;
+//   date: string;
+//   amount: number;
+//   status: 'completed' | 'pending' | 'failed';
+//   batch_reference?: string;
+// }
+
 // Add CSS transitions
 const transitionClasses = {
   card: "transition-all duration-300 ease-in-out hover:border-blue-500/20",
@@ -52,6 +62,7 @@ const MONTHS = [
 ];
 
 export const PayrollContent = () => {
+  const a = useWalletRedirect();
   const [activeTab, setActiveTab] = useState('payment');
   const [selectedGroup, setSelectedGroup] = useState('active');
   const [paymentMonth, setPaymentMonth] = useState('');
@@ -70,6 +81,18 @@ export const PayrollContent = () => {
   const [selectedToken, setSelectedToken] = useState(SUPPORTED_TOKENS[0].symbol);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+
+  // Add this near other state declarations
+  const [payrollHistory, setPayrollHistory] = useState<Payroll[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // Add this interface near other state declarations
+  interface PayrollWithRecipient extends Payroll {
+    recipientDetails?: RecipientProfile;
+  }
+
+  // Add this state
+  const [payrollWithRecipients, setPayrollWithRecipients] = useState<PayrollWithRecipient[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -213,6 +236,12 @@ export const PayrollContent = () => {
         throw new Error('Organization contract address not found');
       }
 
+      // Add this check after getting the contract address:
+      const contractCode = await provider.getCode(contractAddress);
+      if (contractCode === '0x') {
+        throw new Error('Organization contract not deployed at address: ' + contractAddress);
+      }
+
       const payrollContract = new ethers.Contract(contractAddress, orgAbi, signer);
 
       const usdtAddress = process.env.NEXT_PUBLIC_USDT_ADDRESS;
@@ -228,30 +257,47 @@ export const PayrollContent = () => {
         signer
       );
 
-      // Calculate total net amount
+      // Add this check before calculating amounts:
+      const usdtDecimals = 6;  //await usdtContract.decimals();
+      console.log('Token setup:', {
+        decimals: usdtDecimals,
+        tokenAddress: usdtAddress,
+        contractAddress: contractAddress
+      });
+
+      // Update the amount parsing to use the correct decimals
       const totalNetAmount = filteredRecipients.reduce(
         (sum, r) => sum + (r.salary || 0),
         0
       );
 
-      if (totalNetAmount <= 0) {
-        throw new Error('Total disbursement amount must be greater than 0');
-      }
+      // Parse with correct decimals
+      const parsedAmount = ethers.parseUnits(
+        totalNetAmount.toString(),
+        usdtDecimals
+      );
 
-      // Use contract's calculateGrossAmount function
+      // Calculate total net amount
       const totalGrossAmount = await payrollContract.calculateGrossAmount(
-        ethers.parseUnits(totalNetAmount.toString(), 6)
+        parsedAmount
       );
 
       // Check current allowance
       const currentAllowance = await usdtContract.allowance(address, contractAddress);
+      console.log('Allowance check:', {
+        current: ethers.formatUnits(currentAllowance, 6),
+        required: ethers.formatUnits(totalGrossAmount, 6)
+      });
 
       if (currentAllowance < totalGrossAmount) {
+        console.log('Requesting token approval...');
         const approveTx = await usdtContract.approve(
           contractAddress,
           totalGrossAmount
         );
-        await approveTx.wait();
+        console.log('Approval transaction sent:', approveTx.hash);
+        const approveReceipt = await approveTx.wait();
+        console.log('Approval confirmed:', approveReceipt.hash);
       }
 
       // Check balance
@@ -275,6 +321,20 @@ export const PayrollContent = () => {
         paymentMonth,
         contractAddress,
         organizationId
+      });
+
+      // Add this logging right before the disbursement attempt:
+      console.log('Pre-disbursement check:', {
+        recipients: filteredRecipients.map(r => ({
+          address: r.recipient_ethereum_address,
+          amount: ethers.formatUnits(r.salary || 0, 6),
+          id: r.id
+        })),
+        contractAddress,
+        usdtAddress,
+        balance: await usdtContract.balanceOf(address),
+        allowance: await usdtContract.allowance(address, contractAddress),
+        totalAmount: totalGrossAmount
       });
 
       if (recipients.length === 1) {
@@ -317,12 +377,12 @@ export const PayrollContent = () => {
         code: error && typeof error === 'object' && 'code' in error ? error.code : undefined,
         data: error && typeof error === 'object' && 'data' in error ? error.data : undefined
       });
-      
+
       // Throw a more descriptive error
       throw new Error(
-        error instanceof Error ? error.message : 
-        (error && typeof error === 'object' && 'data' in error ? String(error.data) : 
-        'Failed to process disbursement. Please check console for details.')
+        error instanceof Error ? error.message :
+          (error && typeof error === 'object' && 'data' in error ? String(error.data) :
+            'Failed to process disbursement. Please check console for details.')
       );
     } finally {
       setIsDisbursing(false);
@@ -344,6 +404,7 @@ export const PayrollContent = () => {
         id: loadingToast,
       });
     } catch (error) {
+      console.error('Disbursement error:', error);
       toast.error(error instanceof Error ? error.message : 'Unknown error', {
         id: loadingToast,
       });
@@ -363,18 +424,49 @@ export const PayrollContent = () => {
   };
 
   // Add this function to filter employees based on selected group
-  const getFilteredEmployees = () => {
-    switch (selectedGroup) {
-      case 'all':
-        return employees;
-      case 'active':
-        return employees.filter(emp => emp.status === 'Completed');
-      case 'onLeave':
-        return employees.filter(emp => emp.status === 'Pending');
-      default:
-        return employees;
-    }
-  };
+  // const getFilteredEmployees = () => {
+  //   switch (selectedGroup) {
+  //     case 'all':
+  //       return employees;
+  //     case 'active':
+  //       return employees.filter(emp => emp.status === 'Completed');
+  //     case 'onLeave':
+  //       return employees.filter(emp => emp.status === 'Pending');
+  //     default:
+  //       return employees;
+  //   }
+  // };
+
+  useEffect(() => {
+    const fetchPayrollHistory = async () => {
+      if (!isConnected || activeTab !== 'history') return;
+
+      setIsLoadingHistory(true);
+      try {
+        const token = getToken();
+        if (!token || isTokenExpired()) return;
+
+        const [payrolls, recipients] = await Promise.all([
+          payrollService.listPayrolls(token),
+          profileService.listRecipientProfiles(token)
+        ]);
+
+        const payrollsWithDetails = payrolls.map(payroll => ({
+          ...payroll,
+          recipientDetails: recipients.find(r => r.id === payroll.recipient)
+        }));
+
+        setPayrollWithRecipients(payrollsWithDetails);
+      } catch (error) {
+        console.error('Error fetching payroll history:', error);
+        toast.error('Failed to load payroll history');
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    fetchPayrollHistory();
+  }, [isConnected, activeTab]);
 
   if (loading) {
     return (
@@ -443,7 +535,7 @@ export const PayrollContent = () => {
           </div>
         </div>
 
-        
+
 
         {/* Payment Section */}
         <div className={`col-span-full bg-black rounded-lg p-6 border border-[#2C2C2C] ${transitionClasses.card}`}>
@@ -463,18 +555,16 @@ export const PayrollContent = () => {
               Payment
             </button>
             <button
-              onClick={() => setActiveTab('salary')}
-              className={`px-4 py-2 flex items-center gap-2 text-sm font-medium rounded-lg ${activeTab === 'salary'
+              onClick={() => setActiveTab('history')} // Update this from 'salary' to 'history'
+              className={`px-4 py-2 flex items-center gap-2 text-sm font-medium rounded-lg ${activeTab === 'history'
                 ? 'bg-blue-600/10 text-blue-500 border border-blue-500/30'
                 : 'text-gray-400'
                 }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2L2 7l10 5 10-5z" />
-                <path d="M2 17l10 5 10-5" />
-                <path d="M2 12l10 5 10-5" />
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Salary Batch
+              Payroll History
             </button>
           </div>
 
@@ -694,6 +784,56 @@ export const PayrollContent = () => {
           </div>
         </div>
       </div>
+
+      {/* Payroll History Table - New Section */}
+      {activeTab === 'history' && (
+        <div className="w-full">
+          {isLoadingHistory ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : (
+            <>
+              {/* Table Headers */}
+              <div className="grid grid-cols-4 gap-4 text-gray-400 border-b border-gray-800 pb-4 mb-4">
+                <div>Recipient Address</div>
+                <div>Date</div>
+                <div>Amount</div>
+                <div>Status</div>
+              </div>
+
+              {/* Table Rows */}
+              <div className="space-y-6">
+                {payrollWithRecipients.length === 0 ? (
+                  <div className="text-center text-gray-400 py-8">
+                    No payroll history found
+                  </div>
+                ) : (
+                  payrollWithRecipients.map((payroll) => (
+                    <div key={payroll.id} className="grid grid-cols-4 gap-4 items-center border-b border-gray-800 pb-6">
+                      <div className="text-white text-sm font-mono truncate">
+                        {payroll.recipientDetails?.recipient_ethereum_address || 'Unknown'}
+                      </div>
+                      <div className="text-white">
+                        {new Date(payroll.date).toLocaleDateString()}
+                      </div>
+                      <div className="text-white">${payroll.amount}</div>
+                      <div>
+                        <span className={`px-3 py-1 rounded-full text-sm ${payroll.status === 'completed' ? 'bg-green-500/10 text-green-500' :
+                            payroll.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
+                              'bg-red-500/10 text-red-500'
+                          }`}>
+                          {payroll.status.charAt(0).toUpperCase() + payroll.status.slice(1)}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };

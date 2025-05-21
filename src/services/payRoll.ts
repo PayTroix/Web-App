@@ -78,6 +78,9 @@ export async function disburseSalaryAtomic({
     if (!ethers.isAddress(contractAddress)) {
         throw new Error('Invalid contract address');
     }
+    if (!ethers.isAddress(tokenAddress)) {
+        throw new Error('Invalid token address');
+    }
     if (amount <= BigInt(0)) {
         throw new Error('Amount must be greater than 0');
     }
@@ -94,9 +97,53 @@ export async function disburseSalaryAtomic({
     }
 
     const payrollContract = new ethers.Contract(contractAddress, orgAbi, signer);
+    const tokenContract = new ethers.Contract(
+        tokenAddress,
+        [
+            'function allowance(address,address) view returns (uint256)',
+            'function approve(address,uint256) returns (bool)',
+            'function balanceOf(address) view returns (uint256)'
+        ],
+        signer
+    );
     let backendPayrollId: number | null = null;
 
     try {
+        // Check if contract supports token
+        const isSupported = await payrollContract.isTokenSupported(tokenAddress);
+        if (!isSupported) {
+            throw new Error('Token not supported by the contract');
+        }
+
+        // Check token allowance and approve if needed
+        const signerAddress = await signer.getAddress();
+        const currentAllowance = await tokenContract.allowance(signerAddress, contractAddress);
+
+        console.log('Token setup:', {
+            amount: amount.toString(),
+            currentAllowance: currentAllowance.toString(),
+            signerAddress,
+            contractAddress
+        });
+
+        if (currentAllowance < amount) {
+            console.log('Requesting token approval...');
+            const approveTx = await tokenContract.approve(
+                contractAddress,
+                ethers.MaxUint256 // Approve maximum amount
+            );
+            console.log('Approval transaction sent:', approveTx.hash);
+            await approveTx.wait();
+        }
+
+        // Check balance
+        const balance = await tokenContract.balanceOf(signerAddress);
+        if (balance < amount) {
+            throw new Error(
+                `Insufficient token balance. Required: ${amount.toString()}, Available: ${balance.toString()}`
+            );
+        }
+
         // 1. First create backend payroll record
         const payrollData = {
             recipient: recipientId,
@@ -110,18 +157,29 @@ export async function disburseSalaryAtomic({
         const payrollResponse = await payrollService.createPayroll(payrollData, token);
         backendPayrollId = payrollResponse.id;
 
-        // 2. Execute on-chain disbursement
+        // 2. Execute on-chain disbursement with proper gas estimation
         const tx = await payrollContract.disburseToken(
             tokenAddress,
             recipientAddress,
-            ethers.parseUnits(amount.toString(), 6)
+            amount,
+            {
+                gasLimit: await payrollContract.disburseToken.estimateGas(
+                    tokenAddress,
+                    recipientAddress,
+                    amount
+                ).catch(() => BigInt(500000)) // fallback gas limit
+            }
         );
+
+        console.log('Transaction sent:', tx.hash);
 
         const receipt = await tx.wait();
 
         if (!receipt || receipt.status !== 1) {
             throw new Error('Transaction failed');
         }
+
+        console.log('Transaction confirmed:', receipt.hash);
 
         // 3. Update backend record as completed
         await payrollService.updatePayrollStatus(backendPayrollId, 'completed', token);
@@ -130,6 +188,13 @@ export async function disburseSalaryAtomic({
         return { backendIds: [backendPayrollId], transactionHash: tx.hash };
 
     } catch (error) {
+        console.error('Disbursement error:', {
+            error,
+            code: error instanceof Error ? (error as EthersError).code : undefined,
+            reason: (error as EthersError).reason,
+            message: (error as Error).message
+        });
+
         // Rollback: Update backend record as failed if chain transaction failed
         if (backendPayrollId) {
             try {
@@ -313,7 +378,7 @@ export async function batchDisburseSalaryAtomic({
         }
 
         // Provide meaningful error message based on error type
-        
+
         let errorMessage = 'Batch disbursement failed: ';
         if (ethError.reason) {
             errorMessage += ethError.reason;

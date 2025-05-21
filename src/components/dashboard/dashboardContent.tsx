@@ -13,6 +13,7 @@ import ActiveEmployees from './ActiveEmployees';
 import RecentActivity from './RecentActivity';
 import { PendingRequest, PendingPayrollVolume } from './PendingRequest';
 import { getToken, isTokenExpired, removeToken, storeToken } from '@/utils/token';
+import { useWalletRedirect } from '@/hooks/useWalletRedirect';
 
 interface DashboardData {
   // treasuryBalance: string;
@@ -81,6 +82,7 @@ const defaultRecentActivities = [
 ];
 
 export const DashboardContent = () => {
+  const a = useWalletRedirect();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const { address, isConnected } = useAppKitAccount();

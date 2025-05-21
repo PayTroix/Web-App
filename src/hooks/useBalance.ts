@@ -71,28 +71,28 @@ const useTokenBalances = () => {
   const getTokenBalances = useCallback(async (walletAddress: string, provider: Provider) => {
     try {
       setBalances(prev => ({ ...prev, loading: true, error: null }));
-      
+
       const addresses = getTokenAddresses();
       const missingAddresses = [];
-      
+
       if (!addresses.USDT) missingAddresses.push('USDT');
       if (!addresses.USDC) missingAddresses.push('USDC');
-      
+
       if (missingAddresses.length > 0) {
         throw new Error(`Token addresses not configured: ${missingAddresses.join(', ')}`);
       }
 
       const ethersProvider = new ethers.BrowserProvider(provider);
-      
+
       // Get all available token balances
       const results = await Promise.allSettled([
         fetchTokenBalance(addresses.USDT, walletAddress, ethersProvider),
         fetchTokenBalance(addresses.USDC, walletAddress, ethersProvider),
       ]);
-      
+
       const usdtResult = results[0];
       const usdcResult = results[1];
-      
+
       setBalances({
         USDT: usdtResult.status === 'fulfilled' ? usdtResult.value : '0',
         USDC: usdcResult.status === 'fulfilled' ? usdcResult.value : '0',
@@ -110,12 +110,12 @@ const useTokenBalances = () => {
   }, []);
 
   const fetchTokenBalance = async (
-    tokenAddress: string | null, 
-    walletAddress: string, 
+    tokenAddress: string | null,
+    walletAddress: string,
     provider: ethers.BrowserProvider
   ): Promise<string> => {
     if (!tokenAddress) return '0';
-    
+
     try {
       const contract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
       const balance = await contract.balanceOf(walletAddress);

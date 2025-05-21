@@ -1,6 +1,6 @@
 'use client';
 import { getToken, isTokenExpired, removeToken, storeToken } from '@/utils/token';
-import { profileService, web3AuthService } from '@/services/api';
+import { profileService, web3AuthService, leaveRequestService } from '@/services/api';
 import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import { ethers } from 'ethers';
 import React, { useEffect, useState, useCallback } from 'react';
@@ -11,6 +11,7 @@ import { toastConfig } from '@/utils/toast';
 import CreateRecipient from '../CreateRecipient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useWalletRedirect } from '@/hooks/useWalletRedirect';
 
 // API response type
 interface RecipientProfile {
@@ -37,6 +38,7 @@ interface Recipient {
 }
 
 export const EmployeesContent = () => {
+  const a = useWalletRedirect();
   const [loading, setLoading] = useState(true);
   const { address, isConnected } = useAppKitAccount();
   const { chainId } = useAppKitNetwork();
@@ -48,6 +50,8 @@ export const EmployeesContent = () => {
   const balance = balances.loading ? '...' : balances.USDT || balances.USDC || '0';
   const [showCreateModal, setShowCreateModal] = useState(false);
   const router = useRouter();
+  const [leaveRequests, setLeaveRequests] = useState<number>(0);
+  const token = getToken();
 
   const fetchData = useCallback(async () => {
     if (!isConnected || !address) return;
@@ -124,6 +128,24 @@ export const EmployeesContent = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    const fetchLeaveRequests = async () => {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const requests = await leaveRequestService.getUserLeaveRequests("organization", token);
+        // Count only pending requests
+        const pendingRequests = requests.filter(req => req.status === 'pending').length;
+        setLeaveRequests(pendingRequests);
+      } catch (error) {
+        console.error('Error fetching leave requests:', error);
+      }
+    };
+
+    fetchLeaveRequests();
+  }, [token]);
 
   const handleRemoveEmployee = async (id: number) => {
     // Optimistically update UI
@@ -273,26 +295,26 @@ export const EmployeesContent = () => {
         {/* Pending Payments Card */}
         <div className="col-span-full md:col-span-2 bg-black rounded-lg p-4 md:p-6 border border-[#2C2C2C] transition-all duration-300 hover:border-blue-500/20">
           <div className="flex items-center justify-between">
-            <div className="p-3 rounded-full">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="blue" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                  <line x1="16" y1="21" x2="16" y2="3" />
-                  <line x1="8" y1="21" x2="8" y2="3" />
-                </svg>
+            <div>
+              <div className="p-3 rounded-full">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="blue" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                    <line x1="16" y1="21" x2="16" y2="3" />
+                    <line x1="8" y1="21" x2="8" y2="3" />
+                  </svg>
+                </div>
+              </div>
+              <div className="mt-16 gap-2 flex items-center">
+                <h2 className="text-white text-3xl font-semibold">{leaveRequests}</h2>
+                <p className="text-gray-500 text-sm">Leave Requests</p>
               </div>
             </div>
-          <Link href="/leaveManagement" >
-           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-700">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </Link>
-
-
-          </div>
-          <div className="mt-16 gap-2 flex items-center">
-            <h2 className="text-white text-3xl font-semibold">4</h2>
-            <p className="text-gray-500 text-sm">Leave Request</p>
+            <Link href="/leaveManagement" >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-700">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </Link>
           </div>
         </div>
       </div>

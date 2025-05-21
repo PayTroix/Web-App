@@ -1,6 +1,8 @@
+import { useWalletRedirect } from '@/hooks/useWalletRedirect';
 import { useState } from 'react';
 
 export default function SalaryAdvance() {
+  const a = useWalletRedirect();
   const [amount, setAmount] = useState('');
   const [percentage, setPercentage] = useState(0);
   const [reason, setReason] = useState('');
@@ -25,15 +27,15 @@ export default function SalaryAdvance() {
             />
             <div className="flex items-center gap-4 mt-2">
               <div>
-              <label className="text-sm">Advance Percentage</label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={percentage}
-                onChange={(e) => setPercentage(Number(e.target.value))}
-                className="w-full"
-              />
+                <label className="text-sm">Advance Percentage</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={percentage}
+                  onChange={(e) => setPercentage(Number(e.target.value))}
+                  className="w-full"
+                />
               </div>
               <span className="text-sm mt-4">{percentage}%</span>
             </div>

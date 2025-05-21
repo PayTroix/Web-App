@@ -1,39 +1,41 @@
 import React from 'react';
-import { Wallet, CalendarDays } from 'lucide-react';
+import { CalendarDays } from 'lucide-react';
 import { ChevronRight } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
+import { useWalletRedirect } from '@/hooks/useWalletRedirect';
 
 export default function WalletDashboard() {
+  const a = useWalletRedirect();
   return (
     <div className="min-h-screen bg-black text-white p-4 space-y-6">
       {/* Balance and Monthly Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Balance Card */}
-        
+
         <div className="bg-black rounded-lg p-2 border border-[#2C2C2C] transition-all duration-300 hover:border-blue-500/20">
-                      <div className="flex justify-between items-center mb-8">
-                        <div>
-                          <Image
-                            src="/wallet.png"
-                            alt="Wallet"
-                            width={70}
-                            height={40}
-                            className="bg-opacity-20 p-3 rounded-full"
-                            priority
-                          />
-                        </div>
-                        <ChevronRight className="h-6 w-6 text-gray-500" />
-                      </div>
-                      <div className="mt-auto p-2">
-                        <p className="text-gray-400 text-sm">Balance</p>
-                        <div className="flex items-baseline">
-                          <h2 className="text-4xl font-bold">$16,000</h2>
-                          <span className="ml-2 text-gray-400 text-sm">(USDT)</span>
-                        </div>
-                      </div>
-                    </div>
-        
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <Image
+                src="/wallet.png"
+                alt="Wallet"
+                width={70}
+                height={40}
+                className="bg-opacity-20 p-3 rounded-full"
+                priority
+              />
+            </div>
+            <ChevronRight className="h-6 w-6 text-gray-500" />
+          </div>
+          <div className="mt-auto p-2">
+            <p className="text-gray-400 text-sm">Balance</p>
+            <div className="flex items-baseline">
+              <h2 className="text-4xl font-bold">$16,000</h2>
+              <span className="ml-2 text-gray-400 text-sm">(USDT)</span>
+            </div>
+          </div>
+        </div>
+
 
         {/* Monthly Summaries */}
         {[{
@@ -64,7 +66,7 @@ export default function WalletDashboard() {
           <div className="flex items-center gap-2 text-blue-400">
             <CalendarDays className="w-5 h-5" />
             <Link href="/salary-advance" className="text-sm">
-            <span>Salary Advance</span>
+              <span>Salary Advance</span>
             </Link>
           </div>
         </div>

@@ -16,6 +16,22 @@ const setAuthHeader = (token: string) => {
   apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 };
 
+// Helper function to clear JWT token from headers
+const clearAuthHeader = () => {
+  delete apiClient.defaults.headers.common['Authorization'];
+};
+
+interface LoginResponse {
+  user: UserData;
+  refresh: string;
+  access: string;
+}
+
+interface LoginRequest { 
+  address: string;
+  signature: string; 
+}
+
 interface UserData {
   id: number;
   username: string;
@@ -272,9 +288,9 @@ export const profileService = {
 
 // Waitlist API service
 export const waitlistService = {
-  listWaitlistEntries: async (token?: string): Promise<WaitlistEntry[]> => {
+  listWaitlistEntries: async (): Promise<WaitlistEntry[]> => {
     try {
-      if (token) setAuthHeader(token);
+      clearAuthHeader(); // Public endpoint
       const response = await apiClient.get('/api/v1/waitlist/waitlist/');
       return response.data;
     } catch (error) {
@@ -283,9 +299,9 @@ export const waitlistService = {
     }
   },
 
-  joinWaitlist: async (email: string, token?: string): Promise<WaitlistEntry> => {
+  joinWaitlist: async (email: string): Promise<WaitlistEntry> => {
     try {
-      if (token) setAuthHeader(token);
+      clearAuthHeader(); // Public endpoint
       const response = await apiClient.post('/api/v1/waitlist/waitlist/', { email });
       return response.data;
     } catch (error) {
@@ -340,10 +356,9 @@ export const waitlistService = {
 
 // Web3Auth API service
 export const web3AuthService = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  login: async (data: any) => {
+  login: async (data: LoginRequest) => {
     try {
-      // if (token) setAuthHeader(token);
+      clearAuthHeader(); // Login should not require auth
       const response = await apiClient.post('/api/v1/web3auth/login/', data);
       return response.data;
     } catch (error) {
@@ -354,7 +369,7 @@ export const web3AuthService = {
 
   getNonce: async (address: string) => {
     try {
-      // if (token) setAuthHeader(token);
+      clearAuthHeader(); // Getting nonce is public
       const response = await apiClient.get(`/api/v1/web3auth/nonce/${address}/`);
       return response.data;
     } catch (error) {
@@ -365,7 +380,7 @@ export const web3AuthService = {
 
   verifyAddress: async (address: string) => {
     try {
-      // if (token) setAuthHeader(token);
+      clearAuthHeader(); // Address verification is public
       const response = await apiClient.get(`/api/v1/web3auth/verify-address/${address}/`);
       return response.data;
     } catch (error) {

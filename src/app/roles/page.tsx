@@ -17,7 +17,7 @@ export default function RolesPage() {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [userType, setUserType] = useState<UserType['type']>(null);
   const router = useRouter();
-  const { userExists, isLoading } = useUserValidation();
+  const { isLoading } = useUserValidation();
 
   useEffect(() => {
     const validateUserType = async () => {
@@ -31,14 +31,14 @@ export default function RolesPage() {
         const userData = await web3AuthService.getUser(token);
         setUserType(userData.user_type as UserType['type']);
 
-        // Only redirect if coming from login/registration
-        if (window.location.pathname === '/roles') {
-          if (userData.user_type === 'recipient') {
-            router.replace('/recipient');
-          } else if (userData.user_type === 'organization') {
-            router.replace('/dashboard');
-          }
-        }
+        // // Only redirect if coming from login/registration
+        // if (window.location.pathname === '/roles') {
+        //   if (userData.user_type === 'recipient') {
+        //     router.replace('/recipient');
+        //   } else if (userData.user_type === 'organization') {
+        //     router.replace('/dashboard');
+        //   }
+        // }
       } catch (error) {
         console.error('Error fetching user type:', error);
         toast.error('Error validating user access');
@@ -112,7 +112,7 @@ export default function RolesPage() {
     <div className="min-h-screen flex flex-col items-center justify-center p-6">
       {/* Logo */}
 
-      <Header />
+      <Header onShowRoles={() => router.push('/roles')} />
 
       <main className="container mx-auto px-4 pt-24 pb-12">
         <motion.div

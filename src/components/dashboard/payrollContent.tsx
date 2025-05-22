@@ -62,7 +62,7 @@ const MONTHS = [
 ];
 
 export const PayrollContent = () => {
-  const a = useWalletRedirect();
+  useWalletRedirect();
   const [activeTab, setActiveTab] = useState('payment');
   const [selectedGroup, setSelectedGroup] = useState('active');
   const [paymentMonth, setPaymentMonth] = useState('');
@@ -83,7 +83,7 @@ export const PayrollContent = () => {
   const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   // Add this near other state declarations
-  const [payrollHistory, setPayrollHistory] = useState<Payroll[]>([]);
+  // const [payrollHistory, setPayrollHistory] = useState<Payroll[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // Add this interface near other state declarations

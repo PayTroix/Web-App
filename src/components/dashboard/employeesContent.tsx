@@ -38,7 +38,7 @@ interface Recipient {
 }
 
 export const EmployeesContent = () => {
-  const a = useWalletRedirect();
+  useWalletRedirect();
   const [loading, setLoading] = useState(true);
   const { address, isConnected } = useAppKitAccount();
   const { chainId } = useAppKitNetwork();

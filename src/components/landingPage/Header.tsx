@@ -9,13 +9,19 @@ import { useUserValidation } from '@/hooks/useUserValidation';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { profileService, web3AuthService } from '@/services/api';
-import { getToken } from '@/utils/token';
+import { getToken, removeToken, isTokenExpired } from '@/utils/token';
+import { toast } from 'react-hot-toast';
+import { ApiError } from './Hero';
 
-const Header = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
+interface HeaderProps {
+  onShowRoles: () => void;
+}
+
+const Header = ({ onShowRoles }: HeaderProps) => {
+  const [, setIsScrolled] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [hasProfile, setHasProfile] = useState(false);
-  const [checkingProfile, setCheckingProfile] = useState(false);
+  const [, setHasProfile] = useState(false);
+  const [, setCheckingProfile] = useState(false);
   const [hasToken, setHasToken] = useState<boolean>(false);
   const { address } = useAppKitAccount();
   const { isLoading } = useUserValidation();
@@ -23,7 +29,6 @@ const Header = () => {
   const router = useRouter();
 
 
-  // Add scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -33,16 +38,74 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleNavigation = async (path: string) => {
+  const handleSignIn = async () => {
     if (isAuthenticating) return;
 
-    const isAuthenticated = await authenticate();
-    if (isAuthenticated) {
-      router.push(path);
+    if (!address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    try {
+      const token = getToken();
+
+      if (token && isTokenExpired()) {
+        // Remove expired token
+        removeToken();
+      }
+
+      const isAuthenticated = await authenticate();
+
+      if (isAuthenticated) {
+        // Check user profiles
+        toast.loading('Checking profiles...', { id: 'profile' });
+        const newToken = getToken(); // Get fresh token after authentication
+
+        try {
+          // Check recipient profile
+          if (!newToken) {
+            toast.error("Not Authenticated");
+            return;
+          }
+
+          const recipientProfiles = await profileService.listRecipientProfiles(newToken);
+          const hasRecipientProfile = recipientProfiles.some(
+            profile => profile.recipient_ethereum_address.toLowerCase() === address.toLowerCase()
+          );
+
+          // Check organization profile
+          const orgProfiles = await profileService.listOrganizationProfiles(newToken);
+          const hasOrgProfile = orgProfiles.length > 0;
+
+          if (hasRecipientProfile || hasOrgProfile) {
+            toast.success('Profile found', { id: 'profile' });
+            // Replace router.push('/roles') with onShowRoles()
+            onShowRoles();
+          } else {
+            toast.success('No profile found. Redirecting to registration', { id: 'profile' });
+            router.push('/register');
+          }
+        } catch (error: unknown) {
+          // Check if error is due to invalid token
+          const apiError = error as ApiError;
+          if (apiError?.response?.data?.code === 'token_not_valid') {
+            removeToken();
+            toast.error('Session expired. Please sign in again.', { id: 'profile' });
+            return;
+          }
+
+          console.error('Error checking profiles:', error);
+          toast.error('Error checking profiles', { id: 'profile' });
+        }
+      } else {
+        toast.error('Authentication failed', { id: 'auth' });
+      }
+    } catch (error) {
+      console.error('Sign in error:', error);
+      toast.error('Sign in failed', { id: 'auth' });
     }
   };
 
-  // Update initialization state when user validation completes
   useEffect(() => {
     const token = getToken();
     setHasToken(!!token);
@@ -85,7 +148,7 @@ const Header = () => {
 
         if (!verificationResult.exists) {
           if (!token) {
-            const nonce = await web3AuthService.getNonce(address);
+            await web3AuthService.getNonce(address);
             await authenticate();
             return;
           }
@@ -149,38 +212,25 @@ const Header = () => {
 
         {/* Right side items */}
         <div className="flex items-center space-x-6">
-          {/* Show loader only when there's a token and still initializing */}
-          {address && hasToken && isInitializing && (
-            <div className="px-6 py-2 rounded-lg bg-blue-400/20 backdrop-blur-sm">
-              <span className="flex items-center">
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              </span>
-            </div>
-          )}
-
-          {/* Show button after initialization */}
-          {renderButton && (
+          {address && ( // Only show when wallet is connected
             <button
-              onClick={() => handleNavigation(hasProfile ? '/roles' : '/register')}
-              disabled={isAuthenticating || checkingProfile}
-              className={`px-6 py-2 rounded-lg text-white transition-all ${isAuthenticating || checkingProfile
+              onClick={handleSignIn}
+              disabled={isAuthenticating}
+              className={`px-6 py-2 rounded-lg text-white transition-all ${isAuthenticating
                 ? 'bg-blue-400/20 backdrop-blur-sm cursor-not-allowed'
                 : 'bg-blue-600/80 hover:bg-blue-700 backdrop-blur-sm'
                 }`}
             >
-              {isAuthenticating || checkingProfile ? (
+              {isAuthenticating ? (
                 <span className="flex items-center space-x-2">
                   <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span>{checkingProfile ? 'Checking Profile...' : 'Authenticating...'}</span>
+                  <span>Signing In...</span>
                 </span>
               ) : (
-                <span>{hasProfile ? 'Dashboard' : 'Register'}</span>
+                <span>Sign In</span>
               )}
             </button>
           )}

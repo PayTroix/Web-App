@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Layout from "@/components/recipient-components/RecipientSidebar";
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
-import { payrollService, leaveRequestService, web3AuthService, LeaveRequest, Payroll, profileService, RecipientProfile } from "@/services/api";
+import { payrollService, web3AuthService, Payroll, profileService, RecipientProfile } from "@/services/api";
 import { getToken, isValidSession, removeToken } from "@/utils/token";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";

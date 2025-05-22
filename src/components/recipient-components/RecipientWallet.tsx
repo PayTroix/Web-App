@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useWalletRedirect } from '@/hooks/useWalletRedirect';
 
 export default function WalletDashboard() {
-  const a = useWalletRedirect();
+  useWalletRedirect();
   return (
     <div className="min-h-screen bg-black text-white p-4 space-y-6">
       {/* Balance and Monthly Summary */}

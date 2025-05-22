@@ -1,21 +1,21 @@
 'use client'
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, ReferenceLine, TooltipProps } from 'recharts';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { payrollService } from '@/services/api';
+import { getToken } from '@/utils/token';
 
-// Define the chart data
-const chartData = [
-  { name: '12/24', payroll: 40 },
-  { name: '01/25', payroll: 25 },
-  { name: '02/25', payroll: 55 },
-  { name: '03/25', payroll: 35 },
-  { name: '04/25', payroll: 45 },
-  { name: '05/25', payroll: 15 },
-  { name: '06/25', payroll: 30 },
-  { name: '07/25', payroll: 65 },
-  { name: '08/25', payroll: 45 },
-  { name: '09/25', payroll: 70 },
-  { name: '10/25', payroll: 55 },
-];
+interface MonthlyData {
+  name: string;
+  payroll: number;
+}
+
+const formatMonthlyData = (monthlyReport: Record<number, number>): MonthlyData[] => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return Object.entries(monthlyReport).map(([month, value]) => ({
+    name: months[parseInt(month) - 1],
+    payroll: value
+  }));
+};
 
 type DotProps = {
   cx: number;
@@ -42,6 +42,27 @@ const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
 
 const LiveLineChart = () => {
   const [activeDataIndex, setActiveDataIndex] = useState<number | null>(4);
+  const [chartData, setChartData] = useState<MonthlyData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPayrollData = async () => {
+      try {
+        const token = getToken();
+        if (!token) return;
+
+        const monthlyReport = await payrollService.getMonthlyReport(token);
+        const formattedData = formatMonthlyData(monthlyReport);
+        setChartData(formattedData);
+      } catch (error) {
+        console.error('Error fetching payroll data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPayrollData();
+  }, []);
 
   const CustomizedDot = ({ cx, cy, index }: Omit<DotProps, 'key'>) => {
     return (
@@ -113,7 +134,7 @@ const LiveLineChart = () => {
             cursor={false}
           />
 
-          {activeDataIndex !== null && (
+          {activeDataIndex !== null && chartData.length > 0 && (
             <ReferenceLine
               x={chartData[activeDataIndex].name}
               stroke="#3b82f6"

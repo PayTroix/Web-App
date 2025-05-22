@@ -2,7 +2,7 @@ import { useWalletRedirect } from '@/hooks/useWalletRedirect';
 import { useState } from 'react';
 
 export default function SalaryAdvance() {
-  const a = useWalletRedirect();
+  useWalletRedirect();
   const [amount, setAmount] = useState('');
   const [percentage, setPercentage] = useState(0);
   const [reason, setReason] = useState('');

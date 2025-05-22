@@ -16,7 +16,7 @@ interface NavItem {
 }
 
 export const Header: FC = () => {
-  const a = useWalletRedirect();
+  useWalletRedirect();
   const [showLeaveRequest, setShowLeaveRequest] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 

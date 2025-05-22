@@ -70,6 +70,7 @@ export const isValidSession = async () => {
         const user = await web3AuthService.getUser(token);
         return !!user;
     } catch (error) {
+        console.error('Error validating session:', error);
         removeToken();
         return false;
     }

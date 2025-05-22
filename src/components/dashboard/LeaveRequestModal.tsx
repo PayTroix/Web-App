@@ -1,5 +1,5 @@
 import { LeaveRequest } from '@/services/api';
-import { ArrowLeft, X } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { differenceInDays, format } from 'date-fns';
 
 interface LeaveRequestModalProps {

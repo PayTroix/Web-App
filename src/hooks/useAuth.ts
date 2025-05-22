@@ -20,9 +20,11 @@ export const useAuth = () => {
         setIsAuthenticating(true);
         const loadingToast = toast.loading('Authenticating...');
 
+        const token = getToken();
+
         try {
             // Check if we have a valid token
-            if (getToken() && !isTokenExpired()) {
+            if (token && !isTokenExpired()) {
                 toast.success('Already authenticated!', { id: loadingToast });
                 return true;
             }

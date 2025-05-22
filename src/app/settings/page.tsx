@@ -72,6 +72,7 @@ export default function SettingsPage() {
       fetchOrganizationData(); // Refresh data
     } catch (error) {
       showToast.error('Failed to update organization data');
+      throw error;
     }
   };
 

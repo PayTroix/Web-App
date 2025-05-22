@@ -5,22 +5,67 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/landingPage/Header';
 import { useUserValidation } from '@/hooks/useUserValidation';
 import { motion } from 'framer-motion';
+import { getToken } from '@/utils/token';
+import { web3AuthService } from '@/services/api';
+import { toast } from 'react-hot-toast';
+
+interface UserType {
+  type: 'recipient' | 'organization' | 'both' | null;
+}
 
 export default function RolesPage() {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [userType, setUserType] = useState<UserType['type']>(null);
   const router = useRouter();
-  const { userExists, isLoading } = useUserValidation();
+  const { isLoading } = useUserValidation();
 
   useEffect(() => {
-    if (!isLoading && !userExists) {
-      router.push('/register');
-    }
-  }, [userExists, isLoading, router]);
+    const validateUserType = async () => {
+      const token = getToken();
+      if (!token) {
+        router.replace('/');
+        return;
+      }
+
+      try {
+        const userData = await web3AuthService.getUser(token);
+        setUserType(userData.user_type as UserType['type']);
+
+        // // Only redirect if coming from login/registration
+        // if (window.location.pathname === '/roles') {
+        //   if (userData.user_type === 'recipient') {
+        //     router.replace('/recipient');
+        //   } else if (userData.user_type === 'organization') {
+        //     router.replace('/dashboard');
+        //   }
+        // }
+      } catch (error) {
+        console.error('Error fetching user type:', error);
+        toast.error('Error validating user access');
+        router.replace('/');
+      }
+    };
+
+    validateUserType();
+  }, [router]);
 
   const handleContinue = () => {
+    if (!userType) {
+      toast.error('Unable to validate user type');
+      return;
+    }
+
     if (selectedRole === 'organization') {
+      if (userType === 'recipient') {
+        toast.error('You do not have access to the organization dashboard');
+        return;
+      }
       router.push('/dashboard');
     } else if (selectedRole === 'recipient') {
+      if (userType === 'organization') {
+        toast.error('You do not have access to the recipient dashboard');
+        return;
+      }
       router.push('/recipient');
     }
   };
@@ -35,7 +80,9 @@ export default function RolesPage() {
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
           <polyline points="9 22 9 12 15 12 15 22"></polyline>
         </svg>
-      )
+      ),
+      // Only show if user type is 'organization' or 'both'
+      show: userType === 'organization' || userType === 'both'
     },
     {
       id: 'recipient',
@@ -46,10 +93,13 @@ export default function RolesPage() {
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
           <circle cx="12" cy="7" r="4"></circle>
         </svg>
-      )
+      ),
+      // Only show if user type is 'recipient' or 'both'
+      show: userType === 'recipient' || userType === 'both'
     }
   ];
 
+  // Render loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#060D13] flex items-center justify-center">
@@ -62,7 +112,7 @@ export default function RolesPage() {
     <div className="min-h-screen flex flex-col items-center justify-center p-6">
       {/* Logo */}
 
-      <Header />
+      <Header onShowRoles={() => router.push('/roles')} />
 
       <main className="container mx-auto px-4 pt-24 pb-12">
         <motion.div
@@ -82,21 +132,21 @@ export default function RolesPage() {
 
           {/* Role Selection Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-            {roles.map((role) => (
+            {roles.filter(role => role.show).map((role) => (
               <motion.button
                 key={role.id}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setSelectedRole(role.id)}
                 className={`group relative p-8 rounded-2xl border-2 ${selectedRole === role.id
-                    ? 'border-blue-500 bg-blue-500/10'
-                    : 'border-[#2C2C2C] hover:border-blue-500/50 bg-[#111827]'
+                  ? 'border-blue-500 bg-blue-500/10'
+                  : 'border-[#2C2C2C] hover:border-blue-500/50 bg-[#111827]'
                   } transition-all duration-300 flex flex-col items-center text-center`}
               >
                 {/* Glow Effect */}
                 <div className={`absolute inset-0 rounded-2xl transition-opacity duration-300 ${selectedRole === role.id
-                    ? 'opacity-100'
-                    : 'opacity-0 group-hover:opacity-50'
+                  ? 'opacity-100'
+                  : 'opacity-0 group-hover:opacity-50'
                   } bg-blue-500/10 blur-xl -z-10`} />
 
                 {/* Icon */}
@@ -116,8 +166,8 @@ export default function RolesPage() {
 
                 {/* Selection Indicator */}
                 <div className={`absolute top-4 right-4 w-4 h-4 rounded-full border-2 ${selectedRole === role.id
-                    ? 'border-blue-500 bg-blue-500'
-                    : 'border-gray-600 group-hover:border-blue-500/50'
+                  ? 'border-blue-500 bg-blue-500'
+                  : 'border-gray-600 group-hover:border-blue-500/50'
                   } transition-all duration-300`}>
                   {selectedRole === role.id && (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -141,8 +191,8 @@ export default function RolesPage() {
               onClick={handleContinue}
               disabled={!selectedRole}
               className={`px-8 py-3 rounded-xl font-medium text-lg ${selectedRole
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20'
-                  : 'bg-gray-800 text-gray-400 cursor-not-allowed'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20'
+                : 'bg-gray-800 text-gray-400 cursor-not-allowed'
                 } transition-all duration-300`}
             >
               Continue

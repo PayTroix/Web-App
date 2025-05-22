@@ -57,9 +57,8 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: false }} // Repeat animation on every scroll
               transition={{ duration: 0.5, delay: index * 0.2 }}
-              className={`card-lightning p-[2px] ${
-                index === 2 ? "md:col-span-2 max-w-lg mx-auto w-full" : ""
-              }`}
+              className={`card-lightning p-[2px] ${index === 2 ? "md:col-span-2 max-w-lg mx-auto w-full" : ""
+                }`}
             >
               <div className="rounded-lg px-6 py-2 flex items-center space-x-4 bg-black/40 hover:bg-black/60 transition-all">
                 <div className=" p-3 rounded-full flex items-center justify-center">

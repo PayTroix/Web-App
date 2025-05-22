@@ -30,11 +30,11 @@ const Footer = () => {
         <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-12">
           {/* Logo */}
           <div className="flex items-center">
-            <Image 
-              src="/logo.png" 
-              alt="Logo" 
-              width={120} 
-              height={40} 
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={120}
+              height={40}
               className="w-24 md:w-32 h-auto"
             />
           </div>
@@ -42,9 +42,9 @@ const Footer = () => {
           {/* Email subscription */}
           <div className="w-full md:w-auto">
             <div className="flex flex-col sm:flex-row gap-3 max-w-md">
-              <input 
-                type="email" 
-                placeholder="Enter your email..." 
+              <input
+                type="email"
+                placeholder="Enter your email..."
                 className="flex-grow bg-white/10 text-gray-300 px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400"
               />
               <button className="bg-blue-600 text-white rounded-lg px-6 py-3 hover:bg-blue-700 transition-colors font-medium whitespace-nowrap">
@@ -59,17 +59,17 @@ const Footer = () => {
           {/* Social icons */}
           <div className="flex gap-3">
             {socialLinks.map((social, index) => (
-              <a 
+              <a
                 key={index}
-                href="#" 
+                href="#"
                 className="bg-white/10 hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center transition-colors"
                 aria-label={social.name}
               >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="18" 
-                  height="18" 
-                  fill="currentColor" 
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  fill="currentColor"
                   viewBox="0 0 16 16"
                 >
                   <path d={social.path} />
@@ -81,9 +81,9 @@ const Footer = () => {
           {/* Nav links */}
           <div className="flex flex-wrap justify-center gap-4 md:gap-8">
             {navLinks.map((link, index) => (
-              <Link 
+              <Link
                 key={index}
-                href={link.href} 
+                href={link.href}
                 className="text-white hover:text-blue-400 transition-colors text-sm sm:text-base"
               >
                 {link.name}
@@ -97,12 +97,12 @@ const Footer = () => {
           <p className="text-gray-400 text-sm order-2 md:order-1">
             © {new Date().getFullYear()} PayTroix. All Rights Reserved
           </p>
-          
+
           <div className="flex gap-4 md:gap-6 order-1 md:order-2">
             {legalLinks.map((link, index) => (
-              <Link 
+              <Link
                 key={index}
-                href={link.href} 
+                href={link.href}
                 className="text-gray-400 hover:text-white transition-colors text-sm"
               >
                 {link.name}

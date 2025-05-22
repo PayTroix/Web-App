@@ -8,7 +8,7 @@ const CTASection = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toast.error('Please enter a valid email address', {
         style: {
@@ -19,9 +19,9 @@ const CTASection = () => {
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       await waitlistService.joinWaitlist(email);
       toast.success('You\'re on the waitlist!', {
@@ -49,16 +49,16 @@ const CTASection = () => {
   return (
     <section id="CTA" className="relative py-16 sm:py-20 overflow-hidden">
       {/* Background Image */}
-      <div 
+      <div
         className="absolute inset-0 z-0 bg-cover bg-center"
         style={{
           backgroundImage: `url('https://res.cloudinary.com/dxswouxj5/image/upload/v1745335984/Frame_1000001178_1_ecydpx.png')`,
         }}
       />
-      
+
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/70 to-black/40 z-0" />
-      
+
       {/* Grid Overlay with lighting effects */}
       <div className="absolute inset-0 overflow-hidden">
         {Array(20).fill(0).map((_, index) => {
@@ -68,9 +68,9 @@ const CTASection = () => {
           const delay = Math.random() * 5;
           const hue = 200 + Math.random() * 40;
           const color = `hsl(${hue}, 100%, 50%)`;
-          
+
           return (
-            <div 
+            <div
               key={`glow-point-${index}`}
               className="absolute rounded-full animate-pulse"
               style={{
@@ -86,38 +86,37 @@ const CTASection = () => {
           );
         })}
       </div>
-      
+
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 sm:px-6">
         <div className="max-w-3xl mx-auto text-center text-white">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 leading-tight">
             Ready to Upgrade Your Payroll?
           </h2>
-          
+
           <p className="text-base sm:text-lg mb-6 sm:mb-8 text-gray-300 max-w-2xl mx-auto">
-            Join the future of employee compensation with the most advanced Web3 
+            Join the future of employee compensation with the most advanced Web3
             payroll system available.
           </p>
-          
-          <form 
-            onSubmit={handleSubmit} 
+
+          <form
+            onSubmit={handleSubmit}
             className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto"
           >
-            <input 
-              type="email" 
+            <input
+              type="email"
               placeholder="Enter your email"
               className="flex-grow bg-white/10 border border-white/30 rounded-lg sm:rounded-l-lg sm:rounded-r-none px-4 py-3 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isSubmitting}
             />
-            <button 
+            <button
               type="submit"
-              className={`${
-                isSubmitting 
-                  ? 'bg-blue-600/70 cursor-not-allowed' 
+              className={`${isSubmitting
+                  ? 'bg-blue-600/70 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
-              } text-white px-6 py-3 rounded-lg sm:rounded-r-lg sm:rounded-l-none font-medium transition-all min-w-[120px] flex items-center justify-center`}
+                } text-white px-6 py-3 rounded-lg sm:rounded-r-lg sm:rounded-l-none font-medium transition-all min-w-[120px] flex items-center justify-center`}
               disabled={isSubmitting}
             >
               {isSubmitting ? (

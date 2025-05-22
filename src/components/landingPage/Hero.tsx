@@ -17,7 +17,7 @@ type AuthResponse = {
   };
 };
 
-type ApiError = {
+export type ApiError = {
   response?: {
     data?: {
       detail?: string;
@@ -32,7 +32,11 @@ export type VerifyAddressResponse = {
   user_type?: 'organization' | 'recipient';
 };
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  onShowRoles: () => void;
+}
+
+export default function HeroSection({ onShowRoles }: HeroSectionProps) {
   const router = useRouter();
   const { address, isConnected } = useAppKitAccount();
   const [isCheckingUser, setIsCheckingUser] = useState(false);
@@ -97,8 +101,10 @@ export default function HeroSection() {
 
     setIsCheckingUser(true);
     const loadingToast = toast.loading('Checking user status...');
-
     try {
+      if (!address) {
+        throw new Error('No wallet address found');
+      }
       const verifyResponse: VerifyAddressResponse = await web3AuthService.verifyAddress(address);
 
       if (!verifyResponse.exists) {
@@ -108,14 +114,16 @@ export default function HeroSection() {
       }
 
       let token = getToken();
-      if (!token || isTokenExpired()) {
-        toast.loading('Authentication required', { id: loadingToast });
+      const needsAuthentication = !token || isTokenExpired();
+
+      if (needsAuthentication) {
+        toast.loading('Authenticating...', { id: loadingToast });
         const loginSuccess = await login();
         if (!loginSuccess) {
           toast.error('Authentication failed', { id: loadingToast });
           return;
         }
-        token = getToken();
+        token = getToken(); // Get fresh token after login
       }
 
       try {
@@ -125,41 +133,48 @@ export default function HeroSection() {
         toast.success('Redirecting...', { id: loadingToast });
 
         if (userType === 'organization') {
-          router.push('/dashboard');
+          router.push('/roles');
         } else if (userType === 'recipient') {
-          router.push('/recipient');
+          router.push('/roles');
         } else if (userType === "both") {
           router.push('/roles');
-        }
-        else {
+        } else {
           toast.error('Organization profile not found. Please complete registration.', { id: loadingToast });
           router.push('/register');
         }
       } catch (orgError: unknown) {
-        if (
-          typeof orgError === 'object' &&
-          orgError !== null &&
-          'response' in orgError &&
-          (orgError as ApiError).response?.data?.detail === 'Organization profile not found.'
-        ) {
+        const apiError = orgError as ApiError;
+        if (apiError.response?.data?.detail === 'Organization profile not found.') {
           toast.error('Organization profile not found. Please complete registration.', { id: loadingToast });
           router.push('/register');
           return;
         }
+
+        // Handle expired token during organization profile fetch
+        if (apiError.response?.data?.code === 'token_not_valid') {
+          removeToken();
+          toast.loading('Re-authenticating...', { id: loadingToast });
+          const loginSuccess = await login();
+          if (loginSuccess) {
+            checkUserAndRedirect(); // Retry the entire process after successful login
+            return;
+          }
+        }
+
         throw orgError;
       }
     } catch (error: unknown) {
       console.error('Error checking user:', error);
+      const apiError = error as ApiError;
 
-      if (typeof error === 'object' && error !== null && 'response' in error) {
-        const err = error as { response?: { data?: { code?: string; exists?: boolean } } };
-        if (err.response?.data?.code === 'token_not_valid' || err.response?.data?.exists === false) {
-          removeToken();
-          toast.error('Your session has expired. Please sign in again.', { id: loadingToast });
-          const loginSuccess = await login();
-          if (loginSuccess) {
-            checkUserAndRedirect(); // Retry the process after successful login
-          }
+      if (apiError.response?.data?.code === 'token_not_valid' ||
+        apiError.response?.data?.exists === false) {
+        removeToken();
+        toast.loading('Re-authenticating...', { id: loadingToast });
+        const loginSuccess = await login();
+        if (loginSuccess) {
+          checkUserAndRedirect(); // Retry after successful login
+          return;
         }
       } else {
         toast.error('An error occurred. Please try again.', { id: loadingToast });
@@ -175,7 +190,36 @@ export default function HeroSection() {
       return;
     }
 
-    await checkUserAndRedirect();
+    const loadingToast = toast.loading('Checking user status...');
+    try {
+      if (!address) {
+        throw new Error('No wallet address found');
+      }
+      const verifyResponse: VerifyAddressResponse = await web3AuthService.verifyAddress(address);
+
+      if (!verifyResponse.exists) {
+        toast.error('Address not registered', { id: loadingToast });
+        router.push('/register');
+        return;
+      }
+
+      const token = getToken();
+      const needsAuthentication = !token || isTokenExpired();
+
+      if (needsAuthentication) {
+        const loginSuccess = await login();
+        if (!loginSuccess) {
+          toast.error('Authentication failed', { id: loadingToast });
+          return;
+        }
+      }
+
+      toast.success('Success!', { id: loadingToast });
+      onShowRoles();
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('An error occurred', { id: loadingToast });
+    }
   };
 
   return (
@@ -186,8 +230,9 @@ export default function HeroSection() {
           "url('https://res.cloudinary.com/dxswouxj5/image/upload/v1745289047/BG_1_t7znif.png')",
       }}
     >
-
-      <Header />
+      {/* Update the Header component to pass the onShowRoles prop */}
+      <Header onShowRoles={onShowRoles} />
+      
       {/* Hero Content */}
       <div className="flex flex-col items-center justify-center text-center px-4 md:px-20 pt-10 md:pt-20 min-h-[calc(100vh-80px)]">
         <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight max-w-4xl transition-all">

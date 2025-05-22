@@ -14,7 +14,7 @@ const TotalEmployees = ({ totalEmployees = 0 }) => {
           </svg>
         </div>
       </div>
-      
+
       <div className="flex flex-col gap-1">
         <h2 className="text-2xl md:text-3xl font-semibold text-white">
           {totalEmployees}

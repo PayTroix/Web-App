@@ -3,50 +3,50 @@ import React, { useState } from 'react';
 
 // Mock data for transaction history
 const initialTransactions = [
-  { 
-    id: 1, 
+  {
+    id: 1,
     type: 'Salary Payment',
-    recipient: 'Jane Doe', 
-    date: '2023-07-15', 
-    amount: '$4,000', 
-    status: 'Completed', 
-    txHash: '0x71C...9E3D' 
+    recipient: 'Jane Doe',
+    date: '2023-07-15',
+    amount: '$4,000',
+    status: 'Completed',
+    txHash: '0x71C...9E3D'
   },
-  { 
-    id: 2, 
+  {
+    id: 2,
     type: 'Bonus Payment',
-    recipient: 'John Smith', 
-    date: '2023-07-14', 
-    amount: '$1,500', 
-    status: 'Completed', 
-    txHash: '0x82B...7F2A' 
+    recipient: 'John Smith',
+    date: '2023-07-14',
+    amount: '$1,500',
+    status: 'Completed',
+    txHash: '0x82B...7F2A'
   },
-  { 
-    id: 3, 
+  {
+    id: 3,
     type: 'Salary Payment',
-    recipient: 'Alice Johnson', 
-    date: '2023-07-15', 
-    amount: '$3,800', 
-    status: 'Pending', 
-    txHash: '0x93A...6D1C' 
+    recipient: 'Alice Johnson',
+    date: '2023-07-15',
+    amount: '$3,800',
+    status: 'Pending',
+    txHash: '0x93A...6D1C'
   },
-  { 
-    id: 4, 
+  {
+    id: 4,
     type: 'Commission',
-    recipient: 'Bob Williams', 
-    date: '2023-07-13', 
-    amount: '$2,200', 
-    status: 'Completed', 
-    txHash: '0x45E...9B3F' 
+    recipient: 'Bob Williams',
+    date: '2023-07-13',
+    amount: '$2,200',
+    status: 'Completed',
+    txHash: '0x45E...9B3F'
   },
-  { 
-    id: 5, 
+  {
+    id: 5,
     type: 'Salary Payment',
-    recipient: 'Charlie Brown', 
-    date: '2023-07-15', 
-    amount: '$4,200', 
-    status: 'Failed', 
-    txHash: '0x67D...2A5E' 
+    recipient: 'Charlie Brown',
+    date: '2023-07-15',
+    amount: '$4,200',
+    status: 'Failed',
+    txHash: '0x67D...2A5E'
   },
 ];
 
@@ -56,8 +56,8 @@ export const PayrollContent = () => {
   const [activeTab, setActiveTab] = useState('all');
 
   // Filter transactions based on active tab
-  const filteredTransactions = activeTab === 'all' 
-    ? transactions 
+  const filteredTransactions = activeTab === 'all'
+    ? transactions
     : transactions.filter(tx => tx.status.toLowerCase() === activeTab);
 
   return (
@@ -79,7 +79,7 @@ export const PayrollContent = () => {
           <p className="text-gray-400 mt-3">Total Payroll (Monthly)</p>
           <h2 className="text-white text-4xl font-semibold mt-2">$164,000</h2>
           <p className="text-gray-400 text-sm">(USDT)</p>
-          
+
           <div className="flex items-center mt-4">
             <span className="text-green-500 text-sm flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
@@ -106,7 +106,7 @@ export const PayrollContent = () => {
           </div>
           <p className="text-gray-400 mt-3">Next Payment Date</p>
           <h2 className="text-white text-2xl font-semibold mt-2">July 30, 2023</h2>
-          
+
           <div className="flex items-center mt-4">
             <div className="bg-blue-500/20 text-blue-500 py-1 px-3 rounded-full text-xs">
               15 days remaining
@@ -130,7 +130,7 @@ export const PayrollContent = () => {
           </div>
           <p className="text-gray-400 mt-3">Pending Payments</p>
           <h2 className="text-white text-4xl font-semibold mt-2">5</h2>
-          
+
           <div className="flex items-center mt-4">
             <div className="bg-yellow-500/20 text-yellow-500 py-1 px-3 rounded-full text-xs">
               $18,500 total amount
@@ -152,53 +152,49 @@ export const PayrollContent = () => {
             Export
           </button>
         </div>
-        
+
         {/* Filter Tabs */}
         <div className="px-6 pt-4 border-b border-gray-800">
           <div className="flex space-x-4">
-            <button 
+            <button
               onClick={() => setActiveTab('all')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 ${
-                activeTab === 'all' 
-                  ? 'border-blue-500 text-blue-500' 
+              className={`pb-3 px-1 text-sm font-medium border-b-2 ${activeTab === 'all'
+                  ? 'border-blue-500 text-blue-500'
                   : 'border-transparent text-gray-400 hover:text-white'
-              }`}
+                }`}
             >
               All Transactions
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('completed')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 ${
-                activeTab === 'completed' 
-                  ? 'border-blue-500 text-blue-500' 
+              className={`pb-3 px-1 text-sm font-medium border-b-2 ${activeTab === 'completed'
+                  ? 'border-blue-500 text-blue-500'
                   : 'border-transparent text-gray-400 hover:text-white'
-              }`}
+                }`}
             >
               Completed
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('pending')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 ${
-                activeTab === 'pending' 
-                  ? 'border-blue-500 text-blue-500' 
+              className={`pb-3 px-1 text-sm font-medium border-b-2 ${activeTab === 'pending'
+                  ? 'border-blue-500 text-blue-500'
                   : 'border-transparent text-gray-400 hover:text-white'
-              }`}
+                }`}
             >
               Pending
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('failed')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 ${
-                activeTab === 'failed' 
-                  ? 'border-blue-500 text-blue-500' 
+              className={`pb-3 px-1 text-sm font-medium border-b-2 ${activeTab === 'failed'
+                  ? 'border-blue-500 text-blue-500'
                   : 'border-transparent text-gray-400 hover:text-white'
-              }`}
+                }`}
             >
               Failed
             </button>
           </div>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -228,13 +224,12 @@ export const PayrollContent = () => {
                     {transaction.amount}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      transaction.status === 'Completed' 
-                        ? 'bg-green-500/20 text-green-500' 
+                    <span className={`px-2 py-1 rounded-full text-xs ${transaction.status === 'Completed'
+                        ? 'bg-green-500/20 text-green-500'
                         : transaction.status === 'Pending'
                           ? 'bg-yellow-500/20 text-yellow-500'
                           : 'bg-red-500/20 text-red-500'
-                    }`}>
+                      }`}>
                       {transaction.status}
                     </span>
                   </td>
@@ -263,7 +258,7 @@ export const PayrollContent = () => {
             </tbody>
           </table>
         </div>
-        
+
         {filteredTransactions.length === 0 && (
           <div className="py-16 text-center">
             <div className="mx-auto w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">

@@ -1,5 +1,6 @@
-import { useWalletRedirect } from '@/hooks/useWalletRedirect';
-import { useState } from 'react';
+import { useWalletRedirect } from "@/hooks/useWalletRedirect";
+import { useState } from "react";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
 export default function SalaryAdvance() {
   useWalletRedirect();
@@ -8,6 +9,7 @@ export default function SalaryAdvance() {
   const [reason, setReason] = useState('');
   const [repaymentMethod, setRepaymentMethod] = useState('');
   const [repaymentDate, setRepaymentDate] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   return (
     <div className="min-h-screen bg-black text-white p-8 border border-[#2C2C2C] rounded-lg shadow-lg">
@@ -81,9 +83,17 @@ export default function SalaryAdvance() {
 
         {/* Buttons */}
         <div className="flex justify-end space-x-8 mt-6">
-          <button className="text-sm text-white hover:underline">Cancel</button>
-          <button className="bg-blue-600 hover:bg-blue-700 px-6 py-2 text-sm rounded text-white">
-            Submit
+          <button 
+            className="text-sm text-white hover:underline"
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+          <button 
+            className="bg-blue-600 hover:bg-blue-700 px-6 py-2 text-sm rounded text-white disabled:bg-blue-800 disabled:cursor-not-allowed"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? <LoadingSpinner className="h-5 w-5" /> : 'Submit'}
           </button>
         </div>
       </div>

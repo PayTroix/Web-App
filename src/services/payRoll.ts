@@ -1,6 +1,5 @@
 import { ethers } from 'ethers';
 import { payrollService } from '@/services/api';
-import toast from 'react-hot-toast';
 import orgAbi from '@/services/organization_abi.json';
 import { type Provider } from "@reown/appkit/react";
 
@@ -184,7 +183,6 @@ export async function disburseSalaryAtomic({
         // 3. Update backend record as completed
         await payrollService.updatePayrollStatus(backendPayrollId, 'completed', token);
 
-        toast.success('Salary disbursed successfully!');
         return { backendIds: [backendPayrollId], transactionHash: tx.hash };
 
     } catch (error) {
@@ -329,7 +327,6 @@ export async function batchDisburseSalaryAtomic({
             )
         );
 
-        toast.success(`Successfully disbursed salaries to ${recipients.length} recipients!`);
         return {
             backendIds: backendPayrollIds,
             transactionHash: receipt.hash

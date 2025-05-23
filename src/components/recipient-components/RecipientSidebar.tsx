@@ -68,9 +68,12 @@ export const Header: FC = () => {
 
       {/* Modal Overlay */}
       {showLeaveRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center px-4">
-          <div className="relative w-full max-w-4xl">
-            <LeaveRequest onClose={() => setShowLeaveRequest(false)} />
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <div className="relative w-full max-w-3xl">
+              <LeaveRequest onClose={() => setShowLeaveRequest(false)} />
+            </div>
           </div>
         </div>
       )}
@@ -89,18 +92,18 @@ export const Sidebar: FC = () => {
       href: '/recipient',
       icon: <MdOutlineDashboard className="text-blue-500" size={20} />,
     },
-    {
-      label: 'Wallet',
-      href: '/wallet',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      ),
-    },
+    // {
+    //   label: 'Wallet',
+    //   href: '/wallet',
+    //   icon: (
+    //     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+    //       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    //       <circle cx="9" cy="7" r="4" />
+    //       <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    //       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    //     </svg>
+    //   ),
+    // },
     {
       label: 'Salary Advance',
       href: '/salary-advance',

@@ -2,12 +2,40 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { payrollService } from '@/services/api';
 import { getToken } from '@/utils/token';
+import { ethers } from 'ethers';
 
 interface PayrollSummary {
   total_paid: number;
   total_pending: number;
   total_entries: number;
 }
+
+const formatNumber = (value: number): string => {
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+    notation: value > 999999 ? 'compact' : 'standard',
+    compactDisplay: 'short'
+  }).format(value);
+};
+
+const formatTokenAmount = (value: number): string => {
+  try {
+    // Convert the value to string and format it with 6 decimals (USDT)
+    const formattedAmount = ethers.formatUnits(value.toString(), 6);
+
+    // Format the number with commas and 2 decimal places
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      notation: Number(formattedAmount) > 999999 ? 'compact' : 'standard',
+      compactDisplay: 'short'
+    }).format(Number(formattedAmount));
+  } catch (error) {
+    console.error('Error formatting token amount:', error);
+    return '0.00';
+  }
+};
 
 export const PendingRequest = ({ count = 0 }) => {
   return (
@@ -29,7 +57,7 @@ export const PendingRequest = ({ count = 0 }) => {
         </div>
       </div>
       <div className="mt-6">
-        <h2 className="text-white text-4xl font-semibold">{count}</h2>
+        <h2 className="text-white text-4xl font-semibold">{formatNumber(count)}</h2>
         <p className="text-gray-500 text-sm">Pending Request</p>
       </div>
     </div>
@@ -73,9 +101,12 @@ export const PendingPayrollVolume: React.FC<PendingPayrollVolumeProps> = ({ volu
             </svg>
           </div>
           <div>
-            <p className="text-2xl font-semibold text-white">
-              {summary?.total_pending || 0}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-2xl font-semibold text-white">
+                ${formatTokenAmount(summary?.total_pending || 0)}
+              </p>
+              <span className="text-gray-400 text-sm">USDT</span>
+            </div>
             <p className="text-gray-400 text-sm">Pending Payrolls</p>
           </div>
         </div>

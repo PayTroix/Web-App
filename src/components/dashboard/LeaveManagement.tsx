@@ -9,21 +9,27 @@ import { getToken } from '@/utils/token';
 import { differenceInDays } from 'date-fns';
 import { LeaveRequest } from '@/services/api';
 import LeaveRequestModal from './LeaveRequestModal';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { useWalletRedirect } from '@/hooks/useWalletRedirect';
+import { toast } from 'react-hot-toast';
 
 interface LeaveStats {
   approved: number;
   pending: number;
   declined: number;
   totalEmployees: number;
+  activeEmployeesPercentage: number;
 }
 
 export default function LeaveManagement() {
+  useWalletRedirect();
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [stats, setStats] = useState<LeaveStats>({
     approved: 0,
     pending: 0,
     declined: 0,
-    totalEmployees: 0
+    totalEmployees: 0,
+    activeEmployeesPercentage: 0  // Changed from 100 to 0
   });
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
@@ -43,11 +49,24 @@ export default function LeaveManagement() {
         const declined = requests.filter(req => req.status === 'rejected').length;
         const uniqueEmployees = new Set(requests.map(req => req.recipient.id)).size;
 
+        // Calculate active employees percentage
+        const currentDate = new Date();
+        const employeesOnLeave = requests.filter(req =>
+          req.status === 'approved' &&
+          new Date(req.start_date) <= currentDate &&
+          new Date(req.end_date) >= currentDate
+        ).length;
+
+        const activeEmployeesPercentage = uniqueEmployees > 0
+          ? Math.round(((uniqueEmployees - employeesOnLeave) / uniqueEmployees) * 100)
+          : 0;  // Changed from 100 to 0
+
         setStats({
           approved,
           pending,
           declined,
-          totalEmployees: uniqueEmployees
+          totalEmployees: uniqueEmployees,
+          activeEmployeesPercentage
         });
       } catch (error) {
         console.error('Error fetching leave data:', error);
@@ -59,38 +78,48 @@ export default function LeaveManagement() {
     fetchLeaveData();
   }, [token]);
 
-  const handleApprove = async (id: number) => {
+  const fetchLeaveRequests = async () => {
     try {
+      const token = getToken();
       if (!token) return;
-      await leaveRequestService.approveLeaveRequest(id, token);
-      // Refresh the leave requests
       const requests = await leaveRequestService.getUserLeaveRequests("organization", token);
       setLeaveRequests(requests);
-      setSelectedRequest(null);
+    } catch (error) {
+      console.error('Error fetching leave requests:', error);
+      toast.error('Failed to fetch leave requests');
+    }
+  };
+
+  const handleApprove = async (id: number) => {
+    try {
+      const token = getToken();
+      if (!token) return;
+      await leaveRequestService.approveLeaveRequest(id, token);
+      toast.success('Leave request approved');
     } catch (error) {
       console.error('Error approving leave request:', error);
+      toast.error('Failed to approve leave request');
     }
   };
 
   const handleDecline = async (id: number) => {
     try {
+      const token = getToken();
       if (!token) return;
       await leaveRequestService.updateLeaveRequest(id, { status: 'rejected' }, token);
-      // Refresh the leave requests
-      const requests = await leaveRequestService.getUserLeaveRequests("organization", token);
-      setLeaveRequests(requests);
-      setSelectedRequest(null);
+      toast.success('Leave request declined');
     } catch (error) {
       console.error('Error declining leave request:', error);
+      toast.error('Failed to decline leave request');
     }
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-black text-white p-4">Loading...</div>;
+    return <LoadingSpinner fullHeight />;
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 bg-[#0A0A0A]">
+    <div className={`flex flex-col gap-6 p-4 md:p-6 bg-[#0A0A0A] ${selectedRequest ? 'overflow-hidden' : ''}`}>
       {/* Header with back button */}
       <div className="mb-6 flex gap-8">
         <Link href="/dashboard" className="p-2 rounded-full bg-neutral-900 hover:bg-neutral-800">
@@ -99,8 +128,8 @@ export default function LeaveManagement() {
         <h1 className="text-2xl text-gray-100 font-semibold">Leave Management</h1>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 md:gap-6">
+      {/* Stats Grid - Moved to top */}
+      <div className={`grid grid-cols-1 md:grid-cols-6 gap-4 md:gap-6 ${selectedRequest ? 'filter blur-sm transition-all duration-200' : ''}`}>
         {/* Approved Card */}
         <div className="col-span-full md:col-span-3 bg-[#111111] rounded-lg p-4 md:p-6 border border-[#333333] transition-all duration-300 hover:border-blue-500/40">
           <div className="flex items-center justify-between">
@@ -127,13 +156,13 @@ export default function LeaveManagement() {
                 stroke="#3b82f6"
                 strokeWidth="8"
                 strokeDasharray="251.2"
-                strokeDashoffset={251.2 * (1 - (stats.totalEmployees / 100))}
+                strokeDashoffset={251.2 * (1 - (stats.activeEmployeesPercentage / 100))}
                 strokeLinecap="round"
                 transform="rotate(-90 50 50)"
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-xl font-bold text-gray-100">{stats.totalEmployees}%</div>
+              <div className="text-xl font-bold text-gray-100">{stats.activeEmployeesPercentage}%</div>
             </div>
           </div>
           <div className="mt-4 text-center">
@@ -158,8 +187,8 @@ export default function LeaveManagement() {
         </div>
       </div>
 
-      {/* Leave Request Table */}
-      <div className="bg-[#111111] border border-[#333333] rounded-lg p-6">
+      {/* Table section - Moved to bottom */}
+      <div className={`bg-[#111111] border border-[#333333] rounded-lg p-6 ${selectedRequest ? 'filter blur-sm transition-all duration-200' : ''}`}>
         <h2 className="text-xl font-bold mb-6 text-gray-100">Leave Request</h2>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -225,12 +254,14 @@ export default function LeaveManagement() {
         </div>
       </div>
 
+      {/* Modal */}
       {selectedRequest && (
         <LeaveRequestModal
           request={selectedRequest}
           onClose={() => setSelectedRequest(null)}
           onApprove={handleApprove}
           onDecline={handleDecline}
+          onActionComplete={fetchLeaveRequests}
         />
       )}
     </div>

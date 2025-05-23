@@ -46,63 +46,80 @@ const Header = ({ onShowRoles }: HeaderProps) => {
       return;
     }
 
-    try {
-      const token = getToken();
+    const loadingToast = toast.loading('Checking user status...');
 
-      if (token && isTokenExpired()) {
-        // Remove expired token
-        removeToken();
+    try {
+      // First verify if address exists
+      const verifyResponse = await web3AuthService.verifyAddress(address);
+
+      if (!verifyResponse.exists) {
+        toast.error('Address not registered', { id: loadingToast });
+        router.push('/register');
+        return;
       }
 
-      const isAuthenticated = await authenticate();
+      // Check if we need to authenticate
+      const token = getToken();
+      const needsAuthentication = !token || isTokenExpired();
 
-      if (isAuthenticated) {
-        // Check user profiles
-        toast.loading('Checking profiles...', { id: 'profile' });
-        const newToken = getToken(); // Get fresh token after authentication
-
-        try {
-          // Check recipient profile
-          if (!newToken) {
-            toast.error("Not Authenticated");
-            return;
-          }
-
-          const recipientProfiles = await profileService.listRecipientProfiles(newToken);
-          const hasRecipientProfile = recipientProfiles.some(
-            profile => profile.recipient_ethereum_address.toLowerCase() === address.toLowerCase()
-          );
-
-          // Check organization profile
-          const orgProfiles = await profileService.listOrganizationProfiles(newToken);
-          const hasOrgProfile = orgProfiles.length > 0;
-
-          if (hasRecipientProfile || hasOrgProfile) {
-            toast.success('Profile found', { id: 'profile' });
-            // Replace router.push('/roles') with onShowRoles()
-            onShowRoles();
-          } else {
-            toast.success('No profile found. Redirecting to registration', { id: 'profile' });
-            router.push('/register');
-          }
-        } catch (error: unknown) {
-          // Check if error is due to invalid token
-          const apiError = error as ApiError;
-          if (apiError?.response?.data?.code === 'token_not_valid') {
-            removeToken();
-            toast.error('Session expired. Please sign in again.', { id: 'profile' });
-            return;
-          }
-
-          console.error('Error checking profiles:', error);
-          toast.error('Error checking profiles', { id: 'profile' });
+      if (needsAuthentication) {
+        const isAuthenticated = await authenticate();
+        if (!isAuthenticated) {
+          toast.error('Authentication failed', { id: loadingToast });
+          return;
         }
-      } else {
-        toast.error('Authentication failed', { id: 'auth' });
+      }
+
+      // Get fresh token after authentication
+      const currentToken = getToken();
+      if (!currentToken) {
+        toast.error('Authentication token missing', { id: loadingToast });
+        return;
+      }
+
+      try {
+        // Only check recipient profile first
+        const recipientProfiles = await profileService.listRecipientProfiles(currentToken);
+        const hasRecipientProfile = recipientProfiles.some(
+          profile => profile.recipient_ethereum_address.toLowerCase() === address.toLowerCase()
+        );
+
+        if (hasRecipientProfile) {
+          toast.success('Success!', { id: loadingToast });
+          onShowRoles();
+          return;
+        }
+
+        // If no recipient profile, try organization profile
+        try {
+          const orgProfiles = await profileService.listOrganizationProfiles(currentToken);
+          if (orgProfiles.length > 0) {
+            toast.success('Success!', { id: loadingToast });
+            onShowRoles();
+            return;
+          }
+        } catch (orgError) {
+          // Ignore organization profile errors - user might be recipient only
+        }
+
+        // If we get here, no profiles were found
+        toast.error('No profile found. Redirecting to registration', { id: loadingToast });
+        router.push('/register');
+
+      } catch (error: unknown) {
+        const apiError = error as ApiError;
+        if (apiError?.response?.data?.code === 'token_not_valid') {
+          removeToken();
+          toast.error('Session expired. Please sign in again.', { id: loadingToast });
+          return;
+        }
+
+        console.error('Error checking profiles:', error);
+        toast.error('Error checking profiles. Please try again.', { id: loadingToast });
       }
     } catch (error) {
       console.error('Sign in error:', error);
-      toast.error('Sign in failed', { id: 'auth' });
+      toast.error('Sign in failed. Please try again.', { id: loadingToast });
     }
   };
 

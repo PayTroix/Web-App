@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import Layout from "@/components/recipient-components/RecipientSidebar";
 import Image from "next/image";
@@ -10,7 +9,7 @@ import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { useWalletRedirect } from "@/hooks/useWalletRedirect";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
 interface DashboardData {
   totalSalary: string;
@@ -86,20 +85,38 @@ function RecipientDashboard() {
           toast.error('Failed to load payroll data');
         }
 
-        // Use recipientProfile.id to filter payrolls
+        // Filter payrolls for the current recipient
         const recipientPayrolls = payrolls.filter(p => p.recipient === recipientProfile.id);
+
+        // Get completed payments
         const completed = recipientPayrolls.filter(p => p.status === 'completed');
         setCompletedPayrolls(completed);
 
+        // Calculate total salary
         const salaryDivisor = 1e6;
         const totalSalaryAmount = completed.reduce((sum, payment) =>
           sum + Number(payment.amount) / salaryDivisor, 0);
 
+        // Get last payment and calculate next payment date
         const lastPayment = completed[0];
-        const nextPayment = recipientPayrolls.find(p =>
-          p.status === 'pending' && new Date(p.date) > new Date()
-        );
+        const lastPaymentDate = lastPayment ? new Date(lastPayment.date) : new Date();
 
+        // Calculate next payment date - should be end of next month
+        const nextPaymentDate = new Date(lastPaymentDate);
+        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 2); // Add 2 months to get to next month
+        nextPaymentDate.setDate(0); // Sets to last day of the month
+
+        // Get next pending payment or create projected one
+        const nextPayment = recipientPayrolls.find(p =>
+          p.status === 'pending' &&
+          new Date(p.date) > new Date()
+        ) || {
+          amount: lastPayment?.amount || "0",
+          date: nextPaymentDate.toISOString(),
+          status: 'projected'
+        };
+
+        // Format the dashboard data
         setDashboardData({
           totalSalary: totalSalaryAmount.toFixed(2),
           lastPayment: {
@@ -108,9 +125,9 @@ function RecipientDashboard() {
             status: lastPayment?.status || "-"
           },
           nextPayment: {
-            amount: nextPayment ? (Number(nextPayment.amount) / salaryDivisor).toFixed(2) : "0",
-            date: nextPayment?.date || "-",
-            dueIn: nextPayment ? Math.ceil((new Date(nextPayment.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0
+            amount: (Number(nextPayment.amount) / salaryDivisor).toFixed(2),
+            date: nextPayment.date,
+            dueIn: Math.ceil((new Date(nextPayment.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
           }
         });
 
@@ -228,19 +245,29 @@ function RecipientDashboard() {
                 <ChevronRight className="h-6 w-6 text-gray-500" />
               </div>
               <div className="mt-auto p-2">
-                <p className="text-gray-400 text-sm">
-                  {dashboardData?.nextPayment.date && dashboardData.nextPayment.date !== "-"
-                    ? format(new Date(dashboardData.nextPayment.date), "MMM dd, yyyy")
-                    : "-"}
-                </p>
-                <div className="flex items-baseline">
-                  <h2 className="text-4xl font-bold">
-                    ${dashboardData?.nextPayment.amount}
-                  </h2>
-                  <span className="ml-2 text-amber-500 text-sm">
-                    Due in {dashboardData?.nextPayment.dueIn} days
-                  </span>
-                </div>
+                {dashboardData?.nextPayment.date !== "-" ? (
+                  <>
+                    <p className="text-gray-400 text-sm">
+                      {dashboardData?.nextPayment.date && format(new Date(dashboardData.nextPayment.date), "MMM dd, yyyy")}
+                    </p>
+                    <div className="flex items-baseline">
+                      <h2 className="text-4xl font-bold">
+                        ${Number(dashboardData?.nextPayment.amount).toLocaleString()}
+                      </h2>
+                      <span className="ml-2 text-amber-500 text-sm">
+                        Due in {dashboardData?.nextPayment.dueIn} days
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-start">
+                    <p className="text-gray-400 text-sm mb-2">No scheduled payment</p>
+                    <div className="flex items-baseline">
+                      <h2 className="text-4xl font-bold">$0</h2>
+                      <span className="ml-2 text-gray-500 text-sm">Pending</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

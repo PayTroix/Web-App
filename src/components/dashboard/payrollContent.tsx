@@ -61,6 +61,25 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+// Add this utility function at the top of the file with other constants
+const formatCurrency = (amount: string | number): string => {
+  try {
+    // Convert the amount to a formatted string with 6 decimals
+    const formattedAmount = ethers.formatUnits(amount.toString(), 6);
+
+    // Format the number with commas and 2 decimal places
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(formattedAmount));
+  } catch (error) {
+    console.error('Error formatting currency:', error);
+    return '$0.00';
+  }
+};
+
 export const PayrollContent = () => {
   useWalletRedirect();
   const [activeTab, setActiveTab] = useState('payment');
@@ -389,37 +408,80 @@ export const PayrollContent = () => {
     }
   };
 
-  const handleDisbursement = async () => {
+  // Add this validation function
+  const validateDisbursement = () => {
     if (!isConnected || !address || !walletProvider) {
-      toast.error('Please connect your wallet first');
-      return;
+      throw new Error('Please connect your wallet first');
     }
 
-    setIsDisbursing(true);
-    const loadingToast = toast.loading('Processing disbursement...');
+    if (!paymentMonth) {
+      throw new Error('Please select payment month and year');
+    }
 
+    const token = getToken();
+    if (!token || isTokenExpired()) {
+      throw new Error('Authentication required');
+    }
+
+    return true;
+  };
+
+  // Update the handleDisbursement function
+  const handleDisbursement = async () => {
     try {
-      await handleDisburse();
-      toast.success('Disbursement completed successfully!', {
-        id: loadingToast,
+      // Validate before showing any loading state
+      validateDisbursement();
+
+      setIsDisbursing(true);
+      // Show loading toast only after validation passes
+      const loadingToastId = toast.loading('Processing disbursement...', {
+        duration: Infinity // Keep it until we dismiss it
       });
+
+      try {
+        await handleDisburse();
+        // Success: Remove loading toast and show success
+        toast.dismiss(loadingToastId);
+        toast.success('Disbursement completed successfully!');
+      } catch (error) {
+        // Failure: Remove loading toast and show error
+        toast.dismiss(loadingToastId);
+        throw error; // Re-throw to be caught by outer catch
+      }
     } catch (error) {
+      // Handle both validation and disbursement errors
       console.error('Disbursement error:', error);
-      toast.error(error instanceof Error ? error.message : 'Unknown error', {
-        id: loadingToast,
-      });
+      toast.error(error instanceof Error ? error.message : 'Unknown error occurred');
     } finally {
       setIsDisbursing(false);
     }
   };
 
   const calculateTotalAmount = () => {
-    if (selectedGroup === 'all') {
-      return employees.reduce((sum, emp) => sum + parseFloat(emp.salary.replace('$', '').split('(')[0]), 0);
-    } else if (selectedGroup === 'active') {
-      return employees.filter(emp => emp.status !== 'Pending').reduce((sum, emp) => sum + parseFloat(emp.salary.replace('$', '').split('(')[0]), 0);
-    } else {
-      return employees.filter(emp => emp.status === 'Pending').reduce((sum, emp) => sum + parseFloat(emp.salary.replace('$', '').split('(')[0]), 0);
+    try {
+      if (selectedGroup === 'all') {
+        return employees.reduce((sum, emp) => {
+          const amount = emp.salary.replace('$', '').split('(')[0];
+          return sum + Number(ethers.formatUnits(amount, 6));
+        }, 0);
+      } else if (selectedGroup === 'active') {
+        return employees
+          .filter(emp => emp.status !== 'Pending')
+          .reduce((sum, emp) => {
+            const amount = emp.salary.replace('$', '').split('(')[0];
+            return sum + Number(ethers.formatUnits(amount, 6));
+          }, 0);
+      } else {
+        return employees
+          .filter(emp => emp.status === 'Pending')
+          .reduce((sum, emp) => {
+            const amount = emp.salary.replace('$', '').split('(')[0];
+            return sum + Number(ethers.formatUnits(amount, 6));
+          }, 0);
+      }
+    } catch (error) {
+      console.error('Error calculating total amount:', error);
+      return 0;
     }
   };
 
@@ -640,7 +702,10 @@ export const PayrollContent = () => {
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </div>
-                  <span className="text-3xl">${calculateTotalAmount().toFixed(2)}</span>
+                  <span className="text-3xl">
+                    ${calculateTotalAmount().toFixed(2)}
+                    <span className="text-gray-400 text-sm ml-1">USDT</span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -815,15 +880,26 @@ export const PayrollContent = () => {
                         {payroll.recipientDetails?.recipient_ethereum_address || 'Unknown'}
                       </div>
                       <div className="text-white">
-                        {new Date(payroll.date).toLocaleDateString()}
+                        {new Date(payroll.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
                       </div>
-                      <div className="text-white">${payroll.amount}</div>
+                      <div className="text-white font-medium">
+                        {formatCurrency(payroll.amount)}
+                        <span className="text-gray-400 text-sm ml-1">USDT</span>
+                      </div>
                       <div>
-                        <span className={`px-3 py-1 rounded-full text-sm ${payroll.status === 'completed' ? 'bg-green-500/10 text-green-500' :
-                            payroll.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
-                              'bg-red-500/10 text-red-500'
+                        <span className={`
+                          px-3 py-1 rounded-full text-sm capitalize
+                          ${payroll.status === 'completed'
+                            ? 'bg-green-500/10 text-green-500'
+                            : payroll.status === 'pending'
+                              ? 'bg-yellow-500/10 text-yellow-500'
+                              : 'bg-red-500/10 text-red-500'
                           }`}>
-                          {payroll.status.charAt(0).toUpperCase() + payroll.status.slice(1)}
+                          {payroll.status}
                         </span>
                       </div>
                     </div>

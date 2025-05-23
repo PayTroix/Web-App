@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import LiveLineChart from './LiveChart';
+// import LiveLineChart from './LiveChart';
+import { LoadingSpinner } from '../common/LoadingSpinner';
 import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import { ethers } from 'ethers';
 import { notificationsService, profileService, web3AuthService } from '@/services/api';
@@ -14,9 +15,9 @@ import RecentActivity from './RecentActivity';
 import { PendingRequest, PendingPayrollVolume } from './PendingRequest';
 import { getToken, isTokenExpired, removeToken, storeToken } from '@/utils/token';
 import { useWalletRedirect } from '@/hooks/useWalletRedirect';
+import dynamic from 'next/dynamic';
 
 interface DashboardData {
-  // treasuryBalance: string;
   totalEmployees: number;
   activeEmployees: number;
   performancePercentage: number;
@@ -27,59 +28,17 @@ interface DashboardData {
     type: string;
     message: string;
     time: string;
-    icon: React.ReactNode;
+    // icon is now optional, so we don't need to include it here
   }>;
 }
 
-// Default recent activities with icons
-const defaultRecentActivities = [
+const LiveLineChart = dynamic(
+  () => import('./LiveChart'),
   {
-    id: '1',
-    type: 'Employee Added',
-    message: 'New employee was added',
-    time: '2 hours ago',
-    icon: (
-      <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="8.5" cy="7" r="4" />
-          <line x1="20" y1="8" x2="20" y2="14" />
-          <line x1="23" y1="11" x2="17" y2="11" />
-        </svg>
-      </div>
-    )
-  },
-  {
-    id: '2',
-    type: 'Payment Sent',
-    message: 'Payroll was processed successfully',
-    time: '1 day ago',
-    icon: (
-      <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-500">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="19" x2="12" y2="5" />
-          <polyline points="5 12 12 5 19 12" />
-        </svg>
-      </div>
-    )
-  },
-  {
-    id: '3',
-    type: 'System Update',
-    message: 'System update was completed successfully',
-    time: '1 day ago',
-    icon: (
-      <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-500">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
-          <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
-          <line x1="6" y1="6" x2="6.01" y2="6" />
-          <line x1="6" y1="18" x2="6.01" y2="18" />
-        </svg>
-      </div>
-    )
-  },
-];
+    loading: () => <LoadingSpinner />,
+    ssr: false
+  }
+);
 
 export const DashboardContent = () => {
   useWalletRedirect();
@@ -93,10 +52,8 @@ export const DashboardContent = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        if (!isConnected || !address) {
-          router.replace('/');
-          return;
-        }
+        // First check if wallet is connected
+        if (!isConnected || !address) return; 
 
         setLoading(true);
 
@@ -104,6 +61,12 @@ export const DashboardContent = () => {
         let token = getToken();
 
         try {
+          // Ensure wallet provider exists
+          if (!walletProvider) {
+            console.log('Waiting for wallet provider...');
+            return; // Exit early and wait for provider
+          }
+
           const provider = new ethers.BrowserProvider(walletProvider, chainId);
           const signer = await provider.getSigner();
 
@@ -143,7 +106,7 @@ export const DashboardContent = () => {
 
           const dashboardData: DashboardData = {
             totalEmployees: recipientsCount,
-            activeEmployees: recipientsCount, // Consider adding an "active" field to track this
+            activeEmployees: recipientsCount,
             performancePercentage: recipientsCount > 0 ? 100 : 0,
             pendingRequests: 0,
             pendingPayrollVolume: 0,
@@ -153,8 +116,7 @@ export const DashboardContent = () => {
                 id: String(notification.id ?? index),
                 type: notification.type ?? 'Notification',
                 message: notification.message ?? 'System notification',
-                time: notification.created_at ?? 'Recently',
-                icon: defaultRecentActivities[Math.min(index, defaultRecentActivities.length - 1)].icon
+                time: notification.created_at ?? 'Recently'
               }))
           };
 
@@ -169,25 +131,23 @@ export const DashboardContent = () => {
           (error.response as { status?: number })?.status === 401) {
           removeToken();
           toast.error('Session expired. Please reconnect your wallet.');
+          // Don't redirect, just let user reconnect
         } else {
-          toast.error('Failed to load dashboard data. Please refresh the page.');
+          // Show a more specific error message
+          toast.error('Unable to load dashboard. Please check your wallet connection.');
         }
-
-        router.replace('/');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [address, chainId, isConnected, router, walletProvider]);
+    if (isConnected && address && walletProvider) {
+      fetchData();
+    }
+  }, [address, chainId, isConnected, walletProvider]);
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (

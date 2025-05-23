@@ -28,8 +28,56 @@ function RegisterPage() {
       return;
     }
 
-    setIsSubmitting(true);
+    // Get form data
     const formData = new FormData(e.target as HTMLFormElement);
+    const orgName = formData.get('orgName') as string;
+    const email = formData.get('email') as string;
+    const address1 = formData.get('address1') as string;
+    const country = formData.get('country') as string;
+    const state = formData.get('state') as string;
+    const website = formData.get('website') as string;
+
+    // Validate form fields
+    if (!orgName.trim()) {
+      toast.error('Organization name is required');
+      return;
+    }
+
+    if (!email.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    if (!address1.trim()) {
+      toast.error('Address is required');
+      return;
+    }
+
+    if (!country) {
+      toast.error('Please select a country');
+      return;
+    }
+
+    if (!state.trim()) {
+      toast.error('State is required');
+      return;
+    }
+
+    // Website URL validation (if provided)
+    if (website && !website.trim().startsWith('http')) {
+      toast.error('Please enter a valid website URL starting with http:// or https://');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const loadingToast = toast.loading('Creating organization...');
 
     try {
       // 1. Verify address and get nonce
@@ -123,7 +171,9 @@ function RegisterPage() {
           // toast.error("Transaction failed");
           throw new Error(`Transaction failed with status ${receipt.status}. Transaction: ${JSON.stringify(txDetails)}`);
         }
-        toast.success('Organization created successfully!');
+        toast.success('Organization created successfully!', {
+          id: loadingToast
+        });
         router.push('/dashboard');
       } catch (error: unknown) {
         // Rollback: Delete backend record if chain transaction failed
@@ -156,10 +206,10 @@ function RegisterPage() {
         throw error;
       }
     } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Failed to register organization', {
+        id: loadingToast
+      });
       console.error('Registration error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to register organization';
-      throw new Error(errorMessage);
-      // toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

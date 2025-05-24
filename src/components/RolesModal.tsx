@@ -12,21 +12,30 @@ export default function RolesModal({ isOpen, onClose, userType }: RolesModalProp
     const router = useRouter();
 
     const handleRoleSelect = (roleType: string) => {
-        if (userType === 'recipient' && roleType === 'organization') {
-            toast.error('You do not have access to the organization dashboard');
-            return;
-        }
-        if (userType === 'organization' && roleType === 'recipient') {
-            toast.error('You do not have access to the recipient dashboard');
+        // Organization role handling
+        if (roleType === 'organization') {
+            if (userType === 'recipient' || userType === null) {
+                // Recipients and new users can create organization profile
+                router.push('/register');
+                onClose();
+                return;
+            }
+            // Existing organization or both types can access dashboard
+            router.push('/dashboard');
+            onClose();
             return;
         }
 
-        if (roleType === 'organization') {
-            router.push('/dashboard');
-        } else {
+        // Recipient role handling
+        if (roleType === 'recipient') {
+            if (userType === 'organization') {
+                toast.error('Organizations cannot access recipient features');
+                return;
+            }
+            // Recipients and both types can access recipient dashboard
             router.push('/recipient');
+            onClose();
         }
-        onClose();
     };
 
     const roles = [
@@ -40,7 +49,7 @@ export default function RolesModal({ isOpen, onClose, userType }: RolesModalProp
                     <polyline points="9 22 9 12 15 12 15 22"></polyline>
                 </svg>
             ),
-            disabled: userType === 'recipient'
+            disabled: false // Everyone can attempt to access organization role
         },
         {
             id: 'recipient',
@@ -52,7 +61,7 @@ export default function RolesModal({ isOpen, onClose, userType }: RolesModalProp
                     <circle cx="12" cy="7" r="4"></circle>
                 </svg>
             ),
-            disabled: userType === 'organization'
+            disabled: userType === 'organization' // Only organization type is restricted
         }
     ];
 

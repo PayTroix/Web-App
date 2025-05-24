@@ -234,7 +234,7 @@ export default function HeroSection({ onShowRoles }: HeroSectionProps) {
       <Header onShowRoles={onShowRoles} />
       
       {/* Hero Content */}
-      <div className="flex flex-col items-center justify-center text-center px-4 md:px-20 pt-10 md:pt-20 min-h-[calc(100vh-80px)]">
+      <div className="flex flex-col items-center justify-center text-center px-4 md:px-20 pt-16 md:pt-20  min-h-[calc(100vh-80px)]">
         <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight max-w-4xl transition-all">
           Payroll Reinvented for{" "}
           <span className="bg-gradient-to-r from-[#0072E5] to-[#00468C] text-transparent bg-clip-text animate-pulse">
@@ -251,11 +251,11 @@ export default function HeroSection({ onShowRoles }: HeroSectionProps) {
           automated tax filing, and detailed reporting.
         </p>
 
-        <div className="mt-8 flex flex-col md:flex-row gap-4 md:gap-8">
+        <div className="mt-8 flex flex-row gap-4 md:gap-8">
           <button
             onClick={handleGetStarted}
             disabled={isCheckingUser}
-            className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-lg font-semibold transform transition-all hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="bg-blue-600 hover:bg-blue-700 md:px-8 px-4 md:py-3 py-1 rounded-lg font-semibold transform transition-all hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isCheckingUser ? (
               <div className="flex items-center justify-center gap-2">

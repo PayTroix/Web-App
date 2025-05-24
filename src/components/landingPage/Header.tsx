@@ -23,6 +23,7 @@ const Header = ({ onShowRoles }: HeaderProps) => {
   const [, setHasProfile] = useState(false);
   const [, setCheckingProfile] = useState(false);
   const [hasToken, setHasToken] = useState<boolean>(false);
+  const [buttonText, setButtonText] = useState('Sign In');
   const { address } = useAppKitAccount();
   const { isLoading } = useUserValidation();
   const { authenticate, isAuthenticating } = useAuth();
@@ -51,7 +52,7 @@ const Header = ({ onShowRoles }: HeaderProps) => {
     try {
       // First verify if address exists
       const verifyResponse = await web3AuthService.verifyAddress(address);
-
+      console.log("VERIFY RESPONSE: ", verifyResponse)
       if (!verifyResponse.exists) {
         toast.error('Address not registered', { id: loadingToast });
         router.push('/register');
@@ -247,7 +248,7 @@ const Header = ({ onShowRoles }: HeaderProps) => {
                   <span>Signing In...</span>
                 </span>
               ) : (
-                <span>Sign In</span>
+                <span>{buttonText}</span>
               )}
             </button>
           )}

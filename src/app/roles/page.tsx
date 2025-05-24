@@ -6,7 +6,7 @@ import Header from '@/components/landingPage/Header';
 import { useUserValidation } from '@/hooks/useUserValidation';
 import { motion } from 'framer-motion';
 import { getToken } from '@/utils/token';
-import { web3AuthService } from '@/services/api';
+import { web3AuthService, profileService } from '@/services/api';
 import { toast } from 'react-hot-toast';
 
 interface UserType {
@@ -16,6 +16,7 @@ interface UserType {
 export default function RolesPage() {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [userType, setUserType] = useState<UserType['type']>(null);
+  const [hasOrgProfile, setHasOrgProfile] = useState<boolean>(false);
   const router = useRouter();
   const { isLoading } = useUserValidation();
 
@@ -28,17 +29,18 @@ export default function RolesPage() {
       }
 
       try {
+        // Get user type
         const userData = await web3AuthService.getUser(token);
         setUserType(userData.user_type as UserType['type']);
 
-        // // Only redirect if coming from login/registration
-        // if (window.location.pathname === '/roles') {
-        //   if (userData.user_type === 'recipient') {
-        //     router.replace('/recipient');
-        //   } else if (userData.user_type === 'organization') {
-        //     router.replace('/dashboard');
-        //   }
-        // }
+        // Check if user has organization profile
+        try {
+          const orgProfiles = await profileService.listOrganizationProfiles(token);
+          setHasOrgProfile(orgProfiles.length > 0);
+        } catch (error) {
+          console.error('Error checking organization profile:', error);
+          setHasOrgProfile(false);
+        }
       } catch (error) {
         console.error('Error fetching user type:', error);
         toast.error('Error validating user access');
@@ -49,18 +51,23 @@ export default function RolesPage() {
     validateUserType();
   }, [router]);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!userType) {
       toast.error('Unable to validate user type');
       return;
     }
 
     if (selectedRole === 'organization') {
-      if (userType === 'recipient') {
-        toast.error('You do not have access to the organization dashboard');
-        return;
+      if (userType === 'organization' || userType === 'both') {
+        if (hasOrgProfile) {
+          router.push('/dashboard');
+        } else {
+          router.push('/register');
+        }
+      } else if (userType === 'recipient') {
+        // Recipients can create an organization
+        router.push('/register');
       }
-      router.push('/dashboard');
     } else if (selectedRole === 'recipient') {
       if (userType === 'organization') {
         toast.error('You do not have access to the recipient dashboard');
@@ -81,8 +88,8 @@ export default function RolesPage() {
           <polyline points="9 22 9 12 15 12 15 22"></polyline>
         </svg>
       ),
-      // Only show if user type is 'organization' or 'both'
-      show: userType === 'organization' || userType === 'both'
+      // Show organization option for all users
+      show: true
     },
     {
       id: 'recipient',
@@ -94,7 +101,7 @@ export default function RolesPage() {
           <circle cx="12" cy="7" r="4"></circle>
         </svg>
       ),
-      // Only show if user type is 'recipient' or 'both'
+      // Only show for recipient or both types
       show: userType === 'recipient' || userType === 'both'
     }
   ];

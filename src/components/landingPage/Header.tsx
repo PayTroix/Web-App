@@ -209,53 +209,56 @@ const Header = ({ onShowRoles }: HeaderProps) => {
 
   // Update the button render condition
   const renderButton = !isInitializing && address && hasToken;
+  return (    
+  <div className="absolute md:top-4 top-0 left-0 right-0 z-50">
+      <div className="md:max-w-[1920px] w-full mx-auto sm:px-6 lg:px-8 ">
+        <nav className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 bg-[#060D13] rounded-md shadow-lg">
+          {/* Logo */}
+          <div className="flex-shrink-0">
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/logo.png"
+                alt="Logo"
+                width={120}
+                height={40}
+                className="h-8 w-auto sm:h-10 md:h-12"
+                priority
+              />
+            </Link>
+          </div>
 
-  return (
-    <div className="absolute top-4 left-0 right-0 z-50">
-      <nav className="flex items-center justify-between px-8 py-4 bg-[#060D13] mx-32 rounded-md">
-        {/* Logo */}
-        <div className="flex-shrink-0">
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/logo.png"
-              alt="Logo"
-              width={120}
-              height={40}
-              className="h-10 w-auto md:h-12"
-              priority
-            />
-          </Link>
-        </div>
-
-        {/* Right side items */}
-        <div className="flex items-center space-x-6">
-          {address && ( // Only show when wallet is connected
-            <button
-              onClick={handleSignIn}
-              disabled={isAuthenticating}
-              className={`px-6 py-2 rounded-lg text-white transition-all ${isAuthenticating
-                ? 'bg-blue-400/20 backdrop-blur-sm cursor-not-allowed'
-                : 'bg-blue-600/80 hover:bg-blue-700 backdrop-blur-sm'
+          {/* Right side items */}
+          <div className="flex items-center gap-3 sm:gap-4 md:gap-6">
+            {address && (
+              <button
+                onClick={handleSignIn}
+                disabled={isAuthenticating}
+                className={`px-3 sm:px-4 md:px-6 py-2 rounded-lg text-white text-sm sm:text-base transition-all whitespace-nowrap ${
+                  isAuthenticating
+                    ? 'bg-blue-400/20 backdrop-blur-sm cursor-not-allowed'
+                    : 'bg-blue-600/80 hover:bg-blue-700 backdrop-blur-sm'
                 }`}
-            >
-              {isAuthenticating ? (
-                <span className="flex items-center space-x-2">
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>Signing In...</span>
-                </span>
-              ) : (
-                <span>Sign In</span>
-              )}
-            </button>
-          )}
+              >
+                {isAuthenticating ? (
+                  <span className="flex items-center space-x-2">
+                    <svg className="animate-spin h-4 w-4 sm:h-5 sm:w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="hidden sm:inline">Signing In...</span>
+                    <span className="sm:hidden">Sign...</span>
+                  </span>
+                ) : (
+                  <span>Sign In</span>
+                )}
+              </button>
+            )}
 
-          {/* Wallet Button */}
-          <WalletButton className="min-w-[120px]" />
-        </div>
-      </nav>
+            {/* Wallet Button */}
+            <WalletButton className="min-w-[100px] sm:min-w-[120px]" />
+          </div>
+        </nav>
+      </div>
     </div>
   );
 };

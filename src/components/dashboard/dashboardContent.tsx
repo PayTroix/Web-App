@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 // import LiveLineChart from './LiveChart';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
@@ -48,6 +48,29 @@ export const DashboardContent = () => {
   const { chainId } = useAppKitNetwork();
   const { walletProvider } = useAppKitProvider<Provider>('eip155');
   const router = useRouter();
+  
+  // Track previous address to detect actual changes
+  const prevAddressRef = useRef<string | undefined>();
+
+  // Handle address changes - redirect to landing page
+  useEffect(() => {
+    // Skip on initial mount when prevAddressRef.current is undefined
+    if (prevAddressRef.current !== undefined && prevAddressRef.current !== address) {
+      // Address actually changed, remove token and redirect
+      const token = getToken();
+      if (token) {
+        removeToken();
+      }
+      
+      // Redirect to landing page
+      toast.error('Wallet address changed. Redirecting to landing page...');
+      router.push('/');
+      return;
+    }
+    
+    // Update the previous address reference
+    prevAddressRef.current = address;
+  }, [address, router]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -131,7 +154,8 @@ export const DashboardContent = () => {
           (error.response as { status?: number })?.status === 401) {
           removeToken();
           toast.error('Session expired. Please reconnect your wallet.');
-          // Don't redirect, just let user reconnect
+          // Redirect to landing page on auth error
+          router.push('/');
         } else {
           // Show a more specific error message
           toast.error('Unable to load dashboard. Please check your wallet connection.');
@@ -144,7 +168,7 @@ export const DashboardContent = () => {
     if (isConnected && address && walletProvider) {
       fetchData();
     }
-  }, [address, chainId, isConnected, walletProvider]);
+  }, [address, chainId, isConnected, walletProvider, router]);
 
   if (loading) {
     return <LoadingSpinner />;

@@ -1,6 +1,6 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { getToken, isTokenExpired } from '@/utils/token';
+import React, { useEffect, useState, useRef } from 'react';
+import { getToken, isTokenExpired, removeToken } from '@/utils/token';
 import { profileService, payrollService, Payroll, RecipientProfile } from '@/services/api';
 import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import toast from 'react-hot-toast';
@@ -10,6 +10,7 @@ import abi from '@/services/abi.json';
 import orgAbi from '@/services/organization_abi.json';
 import { batchDisburseSalaryAtomic, disburseSalaryAtomic } from '@/services/payRoll';
 import { useWalletRedirect } from '@/hooks/useWalletRedirect';
+import { useRouter } from 'next/navigation';
 
 // Update the Employee interface to match backend status types
 interface Employee {
@@ -112,6 +113,31 @@ export const PayrollContent = () => {
 
   // Add this state
   const [payrollWithRecipients, setPayrollWithRecipients] = useState<PayrollWithRecipient[]>([]);
+
+  const router = useRouter();
+
+  // Track previous address to detect actual changes
+  const prevAddressRef = useRef<string | undefined>();
+
+  // Handle address changes - redirect to landing page
+  useEffect(() => {
+    // Skip on initial mount when prevAddressRef.current is undefined
+    if (prevAddressRef.current !== undefined && prevAddressRef.current !== address) {
+      // Address actually changed, remove token and redirect
+      const token = getToken();
+      if (token) {
+        removeToken();
+      }
+
+      // Redirect to landing page
+      toast.error('Wallet address changed. Redirecting to landing page...');
+      router.push('/');
+      return;
+    }
+
+    // Update the previous address reference
+    prevAddressRef.current = address;
+  }, [address, router]);
 
   useEffect(() => {
     const fetchData = async () => {

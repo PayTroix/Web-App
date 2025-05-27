@@ -2,7 +2,7 @@
 import Header from './Header';
 import { useRouter } from 'next/navigation';
 import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider, type Provider } from "@reown/appkit/react";
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { profileService, web3AuthService } from '../../services/api';
 import Link from 'next/link';
@@ -40,18 +40,35 @@ export default function HeroSection({ onShowRoles }: HeroSectionProps) {
   const router = useRouter();
   const { address, isConnected } = useAppKitAccount();
   const [isCheckingUser, setIsCheckingUser] = useState(false);
-  const [, setIsTransacting] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const { chainId } = useAppKitNetworkCore();
   const { walletProvider } = useAppKitProvider<Provider>('eip155');
+  
+  // Track previous address to detect actual changes
+  const prevAddressRef = useRef<string | undefined>();
 
-  const login = async (): Promise<boolean> => {
+  // Clean up token only when address actually changes (not on component mount)
+  useEffect(() => {
+    // Skip on initial mount when prevAddressRef.current is undefined
+    if (prevAddressRef.current !== undefined && prevAddressRef.current !== address) {
+      // Address actually changed, remove token
+      const token = getToken();
+      if (token) {
+        removeToken();
+      }
+    }
+    
+    // Update the previous address reference
+    prevAddressRef.current = address;
+  }, [address]);
+
+  const authenticate = async (): Promise<boolean> => {
     if (!isConnected || !address) {
       toast.error('Please connect your wallet first');
       return false;
     }
 
-    setIsTransacting(true);
-    const loadingToast = toast.loading('Authenticating...');
+    setIsAuthenticating(true);
 
     try {
       const { nonce } = await web3AuthService.getNonce(address);
@@ -67,44 +84,34 @@ export default function HeroSection({ onShowRoles }: HeroSectionProps) {
 
       const authResponse: AuthResponse = await web3AuthService.login(authData);
       storeToken(authResponse.access);
-      toast.success('Successfully authenticated!', {
-        id: loadingToast
-      });
       return true;
     } catch (error: unknown) {
-      console.error('Login error:', error);
+      console.error('Authentication error:', error);
 
       if (typeof error === 'object' && error !== null && 'response' in error) {
         const err = error as { response?: { data?: { code?: string } } };
         if (err.response?.data?.code === 'token_not_valid') {
           removeToken();
-          toast.error('Your session has expired. Please sign in again.', {
-            id: loadingToast
-          });
+          throw new Error('Your session has expired. Please sign in again.');
         }
-      } else {
-        toast.error('Authentication failed', {
-          id: loadingToast
-        });
       }
-      return false;
+      throw new Error('Authentication failed');
     } finally {
-      setIsTransacting(false);
+      setIsAuthenticating(false);
     }
   };
 
-  const checkUserAndRedirect = async (): Promise<void> => {
-    if (!address) {
+  const handleGetStarted = async (): Promise<void> => {
+    if (!isConnected || !address) {
       toast.error('Please connect your wallet first');
       return;
     }
 
     setIsCheckingUser(true);
     const loadingToast = toast.loading('Checking user status...');
+
     try {
-      if (!address) {
-        throw new Error('No wallet address found');
-      }
+      // First verify if address exists
       const verifyResponse: VerifyAddressResponse = await web3AuthService.verifyAddress(address);
 
       if (!verifyResponse.exists) {
@@ -113,112 +120,72 @@ export default function HeroSection({ onShowRoles }: HeroSectionProps) {
         return;
       }
 
-      let token = getToken();
-      const needsAuthentication = !token || isTokenExpired();
-
-      if (needsAuthentication) {
-        toast.loading('Authenticating...', { id: loadingToast });
-        const loginSuccess = await login();
-        if (!loginSuccess) {
-          toast.error('Authentication failed', { id: loadingToast });
-          return;
-        }
-        token = getToken(); // Get fresh token after login
-      }
-
-      try {
-        const orgResponse = await profileService.listOrganizationProfiles(token);
-        const userType = orgResponse[0]?.user?.user_type;
-
-        toast.success('Redirecting...', { id: loadingToast });
-
-        if (userType === 'organization') {
-          router.push('/roles');
-        } else if (userType === 'recipient') {
-          router.push('/roles');
-        } else if (userType === "both") {
-          router.push('/roles');
-        } else {
-          toast.error('Organization profile not found. Please complete registration.', { id: loadingToast });
-          router.push('/register');
-        }
-      } catch (orgError: unknown) {
-        const apiError = orgError as ApiError;
-        if (apiError.response?.data?.detail === 'Organization profile not found.') {
-          toast.error('Organization profile not found. Please complete registration.', { id: loadingToast });
-          router.push('/register');
-          return;
-        }
-
-        // Handle expired token during organization profile fetch
-        if (apiError.response?.data?.code === 'token_not_valid') {
-          removeToken();
-          toast.loading('Re-authenticating...', { id: loadingToast });
-          const loginSuccess = await login();
-          if (loginSuccess) {
-            checkUserAndRedirect(); // Retry the entire process after successful login
-            return;
-          }
-        }
-
-        throw orgError;
-      }
-    } catch (error: unknown) {
-      console.error('Error checking user:', error);
-      const apiError = error as ApiError;
-
-      if (apiError.response?.data?.code === 'token_not_valid' ||
-        apiError.response?.data?.exists === false) {
-        removeToken();
-        toast.loading('Re-authenticating...', { id: loadingToast });
-        const loginSuccess = await login();
-        if (loginSuccess) {
-          checkUserAndRedirect(); // Retry after successful login
-          return;
-        }
-      } else {
-        toast.error('An error occurred. Please try again.', { id: loadingToast });
-      }
-    } finally {
-      setIsCheckingUser(false);
-    }
-  };
-
-  const handleGetStarted = async (): Promise<void> => {
-    if (!isConnected) {
-      toast.error('Please connect your wallet first');
-      return;
-    }
-
-    const loadingToast = toast.loading('Checking user status...');
-    try {
-      if (!address) {
-        throw new Error('No wallet address found');
-      }
-      const verifyResponse: VerifyAddressResponse = await web3AuthService.verifyAddress(address);
-
-      if (!verifyResponse.exists) {
-        toast.error('Address not registered', { id: loadingToast });
-        router.push('/register');
-        return;
-      }
-
+      // Check if we need to authenticate
       const token = getToken();
       const needsAuthentication = !token || isTokenExpired();
 
       if (needsAuthentication) {
-        const loginSuccess = await login();
-        if (!loginSuccess) {
+        const isAuthenticated = await authenticate();
+        toast.dismiss(loadingToast);
+        toast.loading('Authenticating...');
+        if (!isAuthenticated) {
           toast.error('Authentication failed', { id: loadingToast });
           return;
         }
       }
 
-      toast.success('Success!', { id: loadingToast });
-      onShowRoles();
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('An error occurred', { id: loadingToast });
+      // Get fresh token after authentication
+      const currentToken = getToken();
+      if (!currentToken) {
+        toast.error('Authentication token missing', { id: loadingToast });
+        return;
+      }
+
+      try {
+        // Check recipient profile first
+        const recipientProfiles = await profileService.listRecipientProfiles(currentToken);
+        const hasRecipientProfile = recipientProfiles.some(
+          profile => profile.recipient_ethereum_address.toLowerCase() === address.toLowerCase()
+        );
+
+        if (hasRecipientProfile) {
+          toast.success('Success!', { id: loadingToast });
+          onShowRoles();
+          return;
+        }
+
+        // If no recipient profile, try organization profile
+        try {
+          const orgProfiles = await profileService.listOrganizationProfiles(currentToken);
+          if (orgProfiles.length > 0) {
+            toast.success('Success!', { id: loadingToast });
+            onShowRoles();
+            return;
+          }
+        } catch (orgError) {
+          // Ignore organization profile errors - user might be recipient only
+        }
+
+        // If we get here, no profiles were found
+        toast.error('No profile found. Redirecting to registration', { id: loadingToast });
+        router.push('/register');
+
+      } catch (error: unknown) {
+        const apiError = error as ApiError;
+        if (apiError?.response?.data?.code === 'token_not_valid') {
+          removeToken();
+          toast.error('Session expired. Please sign in again.', { id: loadingToast });
+          return;
+        }
+
+        console.error('Error checking profiles:', error);
+        toast.error('Error checking profiles. Please try again.', { id: loadingToast });
+      }
+    } catch (error: unknown) {
+      console.error('Error in handleGetStarted:', error);
+      toast.error('An error occurred. Please try again.', { id: loadingToast });
+    } finally {
+      setIsCheckingUser(false);
     }
   };
 
@@ -230,9 +197,8 @@ export default function HeroSection({ onShowRoles }: HeroSectionProps) {
           "url('https://res.cloudinary.com/dxswouxj5/image/upload/v1745289047/BG_1_t7znif.png')",
       }}
     >
-      {/* Update the Header component to pass the onShowRoles prop */}
       <Header onShowRoles={onShowRoles} />
-      
+
       {/* Hero Content */}
       <div className="flex flex-col items-center justify-center text-center px-4 md:px-20 pt-10 md:pt-20 min-h-[calc(100vh-80px)]">
         <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight max-w-4xl transition-all">
@@ -254,13 +220,13 @@ export default function HeroSection({ onShowRoles }: HeroSectionProps) {
         <div className="mt-8 flex flex-col md:flex-row gap-4 md:gap-8">
           <button
             onClick={handleGetStarted}
-            disabled={isCheckingUser}
+            disabled={isCheckingUser || isAuthenticating}
             className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-lg font-semibold transform transition-all hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {isCheckingUser ? (
+            {isCheckingUser || isAuthenticating ? (
               <div className="flex items-center justify-center gap-2">
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Checking...</span>
+                <span>{isAuthenticating ? 'Authenticating...' : 'Checking...'}</span>
               </div>
             ) : (
               'Get Started'

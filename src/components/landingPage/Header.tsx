@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import WalletButton from '../WalletButton';
 import Link from 'next/link';
@@ -20,15 +20,15 @@ interface HeaderProps {
 const Header = ({ onShowRoles }: HeaderProps) => {
   const [, setIsScrolled] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [, setHasProfile] = useState(false);
-  const [, setCheckingProfile] = useState(false);
   const [hasToken, setHasToken] = useState<boolean>(false);
   const [buttonText, setButtonText] = useState('Sign In');
   const { address } = useAppKitAccount();
   const { isLoading } = useUserValidation();
   const { authenticate, isAuthenticating } = useAuth();
   const router = useRouter();
-
+  
+  // Track previous address to detect actual changes
+  const prevAddressRef = useRef<string | undefined>();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -132,84 +132,21 @@ const Header = ({ onShowRoles }: HeaderProps) => {
     }
   }, [isLoading]);
 
-  // Modified profile checking effect
+  // Clean up token only when address actually changes (not on component mount)
   useEffect(() => {
-    let isMounted = true;
-
-    const checkUserProfile = async () => {
-      if (!address) return;
-
-      setCheckingProfile(true);
-      try {
-        const token = getToken();
-
-        // First try to find recipient profile if token exists
-        if (token) {
-          try {
-            const recipientProfiles = await profileService.listRecipientProfiles(token);
-            const recipientProfile = recipientProfiles.find(
-              profile => profile.recipient_ethereum_address.toLowerCase() === address.toLowerCase()
-            );
-
-            if (recipientProfile && isMounted) {
-              setHasProfile(true);
-              setCheckingProfile(false);
-              return;
-            }
-          } catch (error) {
-            console.error('Error checking recipient profile:', error);
-          }
-        }
-
-        // Then verify address registration
-        const verificationResult = await web3AuthService.verifyAddress(address);
-
-        if (!verificationResult.exists) {
-          if (!token) {
-            await web3AuthService.getNonce(address);
-            await authenticate();
-            return;
-          }
-        } else if (token) {
-          // Check for organization profile
-          try {
-            const orgProfiles = await profileService.listOrganizationProfiles(token);
-            if (orgProfiles.length > 0 && isMounted) {
-              setHasProfile(true);
-              setCheckingProfile(false);
-              return;
-            }
-          } catch (error) {
-            console.error('Error checking organization profile:', error);
-          }
-        }
-
-        if (isMounted) {
-          setHasProfile(false);
-        }
-      } catch (error) {
-        console.error('Error in profile checking process:', error);
-        if (isMounted) {
-          setHasProfile(false);
-        }
-      } finally {
-        if (isMounted) {
-          setCheckingProfile(false);
-        }
+    // Skip on initial mount when prevAddressRef.current is undefined
+    if (prevAddressRef.current !== undefined && prevAddressRef.current !== address) {
+      // Address actually changed, remove token
+      const token = getToken();
+      if (token) {
+        removeToken();
+        setHasToken(false);
       }
-    };
-
-    if (!isInitializing && address) {
-      checkUserProfile();
     }
-
-    return () => {
-      isMounted = false;
-    };
-  }, [address, isInitializing]); // Remove authenticate from dependencies
-
-  // Update the button render condition
-  const renderButton = !isInitializing && address && hasToken;
+    
+    // Update the previous address reference
+    prevAddressRef.current = address;
+  }, [address]);
 
   return (
     <div className="absolute top-4 left-0 right-0 z-50">

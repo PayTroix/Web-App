@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { ArrowLeft, CheckCircle, X } from 'lucide-react';
 import Link from 'next/link';
 import { leaveRequestService } from '@/services/api';
-import { getToken } from '@/utils/token';
+import { getToken, removeToken } from '@/utils/token';
 import { differenceInDays } from 'date-fns';
 import { LeaveRequest } from '@/services/api';
 import LeaveRequestModal from './LeaveRequestModal';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { useWalletRedirect } from '@/hooks/useWalletRedirect';
 import { toast } from 'react-hot-toast';
+import { useAppKitAccount } from '@reown/appkit/react';
+import { useRouter } from 'next/navigation';
 
 interface LeaveStats {
   approved: number;
@@ -34,6 +36,31 @@ export default function LeaveManagement() {
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const token = getToken();
+  const { address } = useAppKitAccount();
+  const router = useRouter();
+
+  // Track previous address to detect actual changes
+  const prevAddressRef = useRef<string | undefined>();
+
+  // Handle address changes - redirect to landing page
+  useEffect(() => {
+    // Skip on initial mount when prevAddressRef.current is undefined
+    if (prevAddressRef.current !== undefined && prevAddressRef.current !== address) {
+      // Address actually changed, remove token and redirect
+      const token = getToken();
+      if (token) {
+        removeToken();
+      }
+
+      // Redirect to landing page
+      toast.error('Wallet address changed. Redirecting to landing page...');
+      router.push('/');
+      return;
+    }
+
+    // Update the previous address reference
+    prevAddressRef.current = address;
+  }, [address, router]);
 
   useEffect(() => {
     const fetchLeaveData = async () => {

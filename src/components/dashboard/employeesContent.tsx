@@ -3,7 +3,7 @@ import { getToken, isTokenExpired, removeToken, storeToken } from '@/utils/token
 import { profileService, web3AuthService, leaveRequestService } from '@/services/api';
 import { useAppKitAccount, useAppKitNetwork, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import { ethers } from 'ethers';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import abi from "@/services/abi.json";
 import toast from 'react-hot-toast';
 import useTokenBalances from '@/hooks/useBalance';
@@ -52,6 +52,29 @@ export const EmployeesContent = () => {
   const router = useRouter();
   const [leaveRequests, setLeaveRequests] = useState<number>(0);
   const token = getToken();
+
+  // Track previous address to detect actual changes
+  const prevAddressRef = useRef<string | undefined>();
+
+  // Handle address changes - redirect to landing page
+  useEffect(() => {
+    // Skip on initial mount when prevAddressRef.current is undefined
+    if (prevAddressRef.current !== undefined && prevAddressRef.current !== address) {
+      // Address actually changed, remove token and redirect
+      const token = getToken();
+      if (token) {
+        removeToken();
+      }
+
+      // Redirect to landing page
+      toast.error('Wallet address changed. Redirecting to landing page...');
+      router.push('/');
+      return;
+    }
+
+    // Update the previous address reference
+    prevAddressRef.current = address;
+  }, [address, router]);
 
   const fetchData = useCallback(async () => {
     if (!isConnected || !address) return;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -10,7 +10,7 @@ import { profileService, web3AuthService } from '@/services/api';
 import toast from 'react-hot-toast';
 import abi from '@/services/abi.json';
 import WalletButton from '@/components/WalletButton';
-import { storeToken } from '../../utils/token';
+import { storeToken, removeToken, getToken } from '../../utils/token';
 
 function RegisterPage() {
   const router = useRouter();
@@ -19,6 +19,28 @@ function RegisterPage() {
   const { chainId } = useAppKitNetworkCore();
   const { walletProvider } = useAppKitProvider<Provider>('eip155');
 
+  // Track previous address to detect actual changes
+  const prevAddressRef = useRef<string | undefined>();
+
+  // Handle address changes - redirect to landing page
+  useEffect(() => {
+    // Skip on initial mount when prevAddressRef.current is undefined
+    if (prevAddressRef.current !== undefined && prevAddressRef.current !== address) {
+      // Address actually changed, remove token and redirect
+      const token = getToken();
+      if (token) {
+        removeToken();
+      }
+
+      // Redirect to landing page
+      toast.error('Wallet address changed. Redirecting to landing page...');
+      router.push('/');
+      return;
+    }
+
+    // Update the previous address reference
+    prevAddressRef.current = address;
+  }, [address, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,14 +126,12 @@ function RegisterPage() {
       const token = authResponse.access;
       storeToken(token);
 
-
       // Prepare organization data
       const orgData = {
         name: formData.get('orgName') as string,
         email: formData.get('email') as string,
         organization_address: `${formData.get('address1')}, ${formData.get('address2')}, ${formData.get('state')}, ${formData.get('country')}`
       };
-
 
       const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
       if (!ethers.isAddress(contractAddress)) {
@@ -235,10 +255,6 @@ function RegisterPage() {
             <Image src="/logo.png" alt="Logo" width={120} height={120} />
           </Link>
         </div>
-        {/* <div className="flex items-center text-blue-400">
-          <span className="mr-2">✓</span>
-          <span className="text-sm text-gray-400">{displayAddress(address)}</span>
-        </div> */}
         <WalletButton />
       </header>
 

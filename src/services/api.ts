@@ -16,6 +16,22 @@ const setAuthHeader = (token: string) => {
   apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 };
 
+// Helper function to clear JWT token from headers
+const clearAuthHeader = () => {
+  delete apiClient.defaults.headers.common['Authorization'];
+};
+
+interface LoginResponse {
+  user: UserData;
+  refresh: string;
+  access: string;
+}
+
+interface LoginRequest { 
+  address: string;
+  signature: string; 
+}
+
 interface UserData {
   id: number;
   username: string;
@@ -23,7 +39,7 @@ interface UserData {
   user_type: string;
 }
 
-interface Payroll {
+export interface Payroll {
   id: number;
   recipient: number;
   amount: string;
@@ -61,16 +77,30 @@ interface OrganizationProfile {
   updated_at: string;
 }
 
-interface RecipientProfile {
+export interface RecipientProfile {
   id: number;
   name: string;
   email: string;
+  user?: UserData; 
+  image?: string | null;
   recipient_ethereum_address: string;
   organization: number;
   phone_number: string;
   salary: number;
   position: string;
   status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeaveRequest {
+  id: number;
+  recipient: RecipientProfile;
+  start_date: string;
+  end_date: string;
+  leave_type: 'sick' | 'vacation' | 'personal' | 'other';
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   updated_at: string;
 }
@@ -258,9 +288,9 @@ export const profileService = {
 
 // Waitlist API service
 export const waitlistService = {
-  listWaitlistEntries: async (token?: string): Promise<WaitlistEntry[]> => {
+  listWaitlistEntries: async (): Promise<WaitlistEntry[]> => {
     try {
-      if (token) setAuthHeader(token);
+      clearAuthHeader(); // Public endpoint
       const response = await apiClient.get('/api/v1/waitlist/waitlist/');
       return response.data;
     } catch (error) {
@@ -269,9 +299,9 @@ export const waitlistService = {
     }
   },
 
-  joinWaitlist: async (email: string, token?: string): Promise<WaitlistEntry> => {
+  joinWaitlist: async (email: string): Promise<WaitlistEntry> => {
     try {
-      if (token) setAuthHeader(token);
+      clearAuthHeader(); // Public endpoint
       const response = await apiClient.post('/api/v1/waitlist/waitlist/', { email });
       return response.data;
     } catch (error) {
@@ -326,10 +356,9 @@ export const waitlistService = {
 
 // Web3Auth API service
 export const web3AuthService = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  login: async (data: any) => {
+  login: async (data: LoginRequest) => {
     try {
-      // if (token) setAuthHeader(token);
+      clearAuthHeader(); // Login should not require auth
       const response = await apiClient.post('/api/v1/web3auth/login/', data);
       return response.data;
     } catch (error) {
@@ -340,7 +369,7 @@ export const web3AuthService = {
 
   getNonce: async (address: string) => {
     try {
-      // if (token) setAuthHeader(token);
+      clearAuthHeader(); // Getting nonce is public
       const response = await apiClient.get(`/api/v1/web3auth/nonce/${address}/`);
       return response.data;
     } catch (error) {
@@ -351,7 +380,7 @@ export const web3AuthService = {
 
   verifyAddress: async (address: string) => {
     try {
-      // if (token) setAuthHeader(token);
+      clearAuthHeader(); // Address verification is public
       const response = await apiClient.get(`/api/v1/web3auth/verify-address/${address}/`);
       return response.data;
     } catch (error) {
@@ -360,7 +389,7 @@ export const web3AuthService = {
     }
   },
 
-  getUser: async (token: string):Promise<UserData> => {
+  getUser: async (token: string): Promise<UserData> => {
     try {
       setAuthHeader(token);
       const response = await apiClient.get('/api/v1/web3auth/user/');
@@ -467,6 +496,155 @@ export const payrollService = {
       throw error;
     }
   },
+
+  listPayrolls: async (token: string): Promise<Payroll[]> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get('/api/v1/payroll/payrolls/');
+      return response.data;
+    } catch (error) {
+      console.error('Error listing payrolls:', error);
+      throw error;
+    }
+  },
+
+  getPayroll: async (id: number, token: string): Promise<Payroll> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get(`/api/v1/payroll/payrolls/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting payroll:', error);
+      throw error;
+    }
+  },
+
+  markAsPaid: async (id: number, token: string): Promise<Payroll> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.post(`/api/v1/payroll/payrolls/${id}/mark_as_paid/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error marking payroll as paid:', error);
+      throw error;
+    }
+  },
+
+  getPayrollSummary: async (token: string): Promise<PayrollSummary> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get('/api/v1/payroll/payrolls/summary/');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting payroll summary:', error);
+      throw error;
+    }
+  },
+
+  getMonthlyReport: async (token: string, year?: number): Promise<MonthlyReport> => {
+    try {
+      setAuthHeader(token);
+      const url = year
+        ? `/api/v1/payroll/payrolls/monthly_report/?year=${year}`
+        : '/api/v1/payroll/payrolls/monthly_report/';
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting monthly report:', error);
+      throw error;
+    }
+  }
+};
+
+
+// Add new leaveRequestService
+export const leaveRequestService = {
+  createLeaveRequest: async (data: Omit<LeaveRequest, 'id' | 'recipient' | 'created_at' | 'updated_at'>, token: string): Promise<LeaveRequest> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.post('/api/v1/leave_requests/leave_requests/', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating leave request:', error);
+      throw error;
+    }
+  },
+
+  listLeaveRequests: async (token: string): Promise<LeaveRequest[]> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get('/api/v1/leave_requests/leave_requests/');
+      return response.data;
+    } catch (error) {
+      console.error('Error listing leave requests:', error);
+      throw error;
+    }
+  },
+
+  getLeaveRequest: async (id: number, token: string): Promise<LeaveRequest> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get(`/api/v1/leave_requests/leave_requests/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting leave request:', error);
+      throw error;
+    }
+  },
+
+  updateLeaveRequest: async (id: number, data: Partial<LeaveRequest>, token: string): Promise<LeaveRequest> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.patch(`/api/v1/leave_requests/leave_requests/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating leave request:', error);
+      throw error;
+    }
+  },
+
+  deleteLeaveRequest: async (id: number, token: string): Promise<void> => {
+    try {
+      setAuthHeader(token);
+      await apiClient.delete(`/api/v1/leave_requests/leave_requests/${id}/`);
+    } catch (error) {
+      console.error('Error deleting leave request:', error);
+      throw error;
+    }
+  },
+
+  approveLeaveRequest: async (id: number, token: string): Promise<LeaveRequest> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.post(`/api/v1/leave_requests/leave_requests/${id}/approve_leave_request/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error approving leave request:', error);
+      throw error;
+    }
+  },
+
+  getUserLeaveRequests: async (usertype: string, token: string): Promise<LeaveRequest[]> => {
+    try {
+      setAuthHeader(token);
+      const response = await apiClient.get(`/api/v1/leave_requests/leave_requests/get_leave_requests/?usertype=${usertype}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting user leave requests:', error);
+      throw error;
+    }
+  }
+};
+
+// Add new interfaces for Payroll responses
+interface PayrollSummary {
+  total_paid: number;
+  total_pending: number;
+  total_entries: number;
+}
+
+interface MonthlyReport {
+  [month: number]: number;
 }
 
 export default apiClient;

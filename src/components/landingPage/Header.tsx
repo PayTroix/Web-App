@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import WalletButton from '../WalletButton';
 import Link from 'next/link';
@@ -8,16 +8,28 @@ import { useAppKitAccount } from '@reown/appkit/react';
 import { useUserValidation } from '@/hooks/useUserValidation';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import { profileService, web3AuthService } from '@/services/api';
+import { getToken, removeToken, isTokenExpired } from '@/utils/token';
+import { toast } from 'react-hot-toast';
+import { ApiError } from './Hero';
 
-const Header = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
+interface HeaderProps {
+  onShowRoles: () => void;
+}
+
+const Header = ({ onShowRoles }: HeaderProps) => {
+  const [, setIsScrolled] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [hasToken, setHasToken] = useState<boolean>(false);
+  const [buttonText, setButtonText] = useState('Sign In');
   const { address } = useAppKitAccount();
-  const { userExists, isLoading } = useUserValidation();
+  const { isLoading } = useUserValidation();
   const { authenticate, isAuthenticating } = useAuth();
   const router = useRouter();
+  
+  // Track previous address to detect actual changes
+  const prevAddressRef = useRef<string | undefined>();
 
-  // Add scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -27,85 +39,162 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleNavigation = async (path: string) => {
+  const handleSignIn = async () => {
     if (isAuthenticating) return;
 
-    const isAuthenticated = await authenticate();
-    if (isAuthenticated) {
-      router.push(path);
+    if (!address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    const loadingToast = toast.loading('Checking user status...');
+
+    try {
+      // First verify if address exists
+      const verifyResponse = await web3AuthService.verifyAddress(address);
+      console.log("VERIFY RESPONSE: ", verifyResponse)
+      if (!verifyResponse.exists) {
+        toast.error('Address not registered', { id: loadingToast });
+        router.push('/register');
+        return;
+      }
+
+      // Check if we need to authenticate
+      const token = getToken();
+      const needsAuthentication = !token || isTokenExpired();
+
+      if (needsAuthentication) {
+        const isAuthenticated = await authenticate();
+        if (!isAuthenticated) {
+          toast.error('Authentication failed', { id: loadingToast });
+          return;
+        }
+      }
+
+      // Get fresh token after authentication
+      const currentToken = getToken();
+      if (!currentToken) {
+        toast.error('Authentication token missing', { id: loadingToast });
+        return;
+      }
+
+      try {
+        // Only check recipient profile first
+        const recipientProfiles = await profileService.listRecipientProfiles(currentToken);
+        const hasRecipientProfile = recipientProfiles.some(
+          profile => profile.recipient_ethereum_address.toLowerCase() === address.toLowerCase()
+        );
+
+        if (hasRecipientProfile) {
+          toast.success('Success!', { id: loadingToast });
+          onShowRoles();
+          return;
+        }
+
+        // If no recipient profile, try organization profile
+        try {
+          const orgProfiles = await profileService.listOrganizationProfiles(currentToken);
+          if (orgProfiles.length > 0) {
+            toast.success('Success!', { id: loadingToast });
+            onShowRoles();
+            return;
+          }
+        } catch (orgError) {
+          // Ignore organization profile errors - user might be recipient only
+        }
+
+        // If we get here, no profiles were found
+        toast.error('No profile found. Redirecting to registration', { id: loadingToast });
+        router.push('/register');
+
+      } catch (error: unknown) {
+        const apiError = error as ApiError;
+        if (apiError?.response?.data?.code === 'token_not_valid') {
+          removeToken();
+          toast.error('Session expired. Please sign in again.', { id: loadingToast });
+          return;
+        }
+
+        console.error('Error checking profiles:', error);
+        toast.error('Error checking profiles. Please try again.', { id: loadingToast });
+      }
+    } catch (error) {
+      console.error('Sign in error:', error);
+      toast.error('Sign in failed. Please try again.', { id: loadingToast });
     }
   };
 
-  // Update initialization state when user validation completes
   useEffect(() => {
+    const token = getToken();
+    setHasToken(!!token);
     if (!isLoading) {
       setIsInitializing(false);
     }
   }, [isLoading]);
 
-  return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-[#060D13]/95 backdrop-blur-sm py-2' : 'bg-[#060D13] py-4'
-      }`}>
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex-shrink-0">
-            <Link href="/" className="flex items-center">
-              <Image
-                src="/logo.png"
-                alt="Logo"
-                width={120}
-                height={40}
-                className="h-10 w-auto md:h-12"
-                priority
-              />
-            </Link>
-          </div>
+  // Clean up token only when address actually changes (not on component mount)
+  useEffect(() => {
+    // Skip on initial mount when prevAddressRef.current is undefined
+    if (prevAddressRef.current !== undefined && prevAddressRef.current !== address) {
+      // Address actually changed, remove token
+      const token = getToken();
+      if (token) {
+        removeToken();
+        setHasToken(false);
+      }
+    }
+    
+    // Update the previous address reference
+    prevAddressRef.current = address;
+  }, [address]);
 
-          {/* Navigation Items */}
-          <div className="flex items-center space-x-6">
-            {/* Show loader while initializing */}
-            {address && isInitializing && (
-              <div className="px-6 py-2 rounded-lg bg-blue-400">
-                <span className="flex items-center">
+  return (
+    <div className="absolute top-4 left-0 right-0 z-50">
+      <nav className="flex items-center justify-between px-8 py-4 bg-[#060D13] mx-32 rounded-md">
+        {/* Logo */}
+        <div className="flex-shrink-0">
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={120}
+              height={40}
+              className="h-10 w-auto md:h-12"
+              priority
+            />
+          </Link>
+        </div>
+
+        {/* Right side items */}
+        <div className="flex items-center space-x-6">
+          {address && ( // Only show when wallet is connected
+            <button
+              onClick={handleSignIn}
+              disabled={isAuthenticating}
+              className={`px-6 py-2 rounded-lg text-white transition-all ${isAuthenticating
+                ? 'bg-blue-400/20 backdrop-blur-sm cursor-not-allowed'
+                : 'bg-blue-600/80 hover:bg-blue-700 backdrop-blur-sm'
+                }`}
+            >
+              {isAuthenticating ? (
+                <span className="flex items-center space-x-2">
                   <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
+                  <span>Signing In...</span>
                 </span>
-              </div>
-            )}
+              ) : (
+                <span>{buttonText}</span>
+              )}
+            </button>
+          )}
 
-            {/* Show button after initialization */}
-            {!isInitializing && address && (
-              <button
-                onClick={() => handleNavigation(userExists ? '/roles' : '/register')}
-                disabled={isAuthenticating}
-                className={`px-6 py-2 rounded-lg text-white transition-all ${isAuthenticating
-                    ? 'bg-blue-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                  }`}
-              >
-                {isAuthenticating ? (
-                  <span className="flex items-center space-x-2">
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Authenticating...</span>
-                  </span>
-                ) : (
-                  <span>{userExists ? 'Dashboard' : 'Register'}</span>
-                )}
-              </button>
-            )}
-
-            {/* Wallet Button */}
-            <WalletButton className="min-w-[120px]" />
-          </div>
+          {/* Wallet Button */}
+          <WalletButton className="min-w-[120px]" />
         </div>
-      </div>
-    </nav>
+      </nav>
+    </div>
   );
 };
 

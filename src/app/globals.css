@@ -13,8 +13,13 @@ html {
 
 /* Add animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .animate-fadeIn {
@@ -60,7 +65,7 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: 
+  background-image:
     repeating-linear-gradient(0deg, rgba(13, 27, 73, 0.1), rgba(0, 183, 255, 0.1) 1px, transparent 1px, transparent 40px),
     repeating-linear-gradient(90deg, rgba(0, 183, 255, 0.1), rgba(0, 183, 255, 0.1) 1px, transparent 1px, transparent 40px);
   z-index: 0;
@@ -80,14 +85,12 @@ body {
   position: absolute;
   inset: 0;
   padding: 2px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    #3b82f6,
-    #60a5fa,
-    #2563eb,
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      #3b82f6,
+      #60a5fa,
+      #2563eb,
+      transparent);
   background-size: 200% 200%;
   animation: electricBorder 10s linear infinite;
   border-radius: inherit;
@@ -103,8 +106,19 @@ body {
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -121,9 +135,18 @@ body {
     animation: slide 0.3s ease-out;
   }
 
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
   }
 
   @keyframes slideUp {
@@ -131,6 +154,7 @@ body {
       opacity: 0;
       transform: translateY(10px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -142,6 +166,7 @@ body {
       opacity: 0;
       transform: translateX(-10px);
     }
+
     to {
       opacity: 1;
       transform: translateX(0);
@@ -149,7 +174,12 @@ body {
   }
 
   @keyframes fade {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
   }
 }

@@ -1,8 +1,33 @@
+// 'use client'
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "react-hot-toast";
+// import NProgress from 'nprogress';
+import 'nprogress/nprogress.css';
+// import { usePathname, useSearchParams } from 'next/navigation';
+// import { useEffect } from 'react';
+
+// Configure NProgress
+// NProgress.configure({
+//   minimum: 0.3,
+//   easing: 'ease',
+//   speed: 500,
+//   showSpinner: false
+// });
+
+// function NavigationEvents() {
+//   const pathname = usePathname();
+//   const searchParams = useSearchParams();
+
+//   useEffect(() => {
+//     NProgress.start();
+//     NProgress.done();
+//   }, [pathname, searchParams]);
+
+//   return null;
+// }
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -10,7 +35,7 @@ const inter = Inter({ subsets: ["latin"] })
 import { AppKit } from '@/context/Appkit'
 
 
-export const metadata: Metadata = {
+const metadata: Metadata = {
   title: "PayTroix - Web3 Payroll Solution",
   description: "Payroll Reinvented for Web3 - Instant, Secure, and Borderless",
 }

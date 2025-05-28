@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -10,7 +10,7 @@ import { profileService, web3AuthService } from '@/services/api';
 import toast from 'react-hot-toast';
 import abi from '@/services/abi.json';
 import WalletButton from '@/components/WalletButton';
-import { storeToken } from '../../utils/token';
+import { storeToken, removeToken, getToken } from '../../utils/token';
 
 function RegisterPage() {
   const router = useRouter();
@@ -19,6 +19,28 @@ function RegisterPage() {
   const { chainId } = useAppKitNetworkCore();
   const { walletProvider } = useAppKitProvider<Provider>('eip155');
 
+  // Track previous address to detect actual changes
+  const prevAddressRef = useRef<string | undefined>();
+
+  // Handle address changes - redirect to landing page
+  useEffect(() => {
+    // Skip on initial mount when prevAddressRef.current is undefined
+    if (prevAddressRef.current !== undefined && prevAddressRef.current !== address) {
+      // Address actually changed, remove token and redirect
+      const token = getToken();
+      if (token) {
+        removeToken();
+      }
+
+      // Redirect to landing page
+      toast.error('Wallet address changed. Redirecting to landing page...');
+      router.push('/');
+      return;
+    }
+
+    // Update the previous address reference
+    prevAddressRef.current = address;
+  }, [address, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,8 +50,56 @@ function RegisterPage() {
       return;
     }
 
-    setIsSubmitting(true);
+    // Get form data
     const formData = new FormData(e.target as HTMLFormElement);
+    const orgName = formData.get('orgName') as string;
+    const email = formData.get('email') as string;
+    const address1 = formData.get('address1') as string;
+    const country = formData.get('country') as string;
+    const state = formData.get('state') as string;
+    const website = formData.get('website') as string;
+
+    // Validate form fields
+    if (!orgName.trim()) {
+      toast.error('Organization name is required');
+      return;
+    }
+
+    if (!email.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    if (!address1.trim()) {
+      toast.error('Address is required');
+      return;
+    }
+
+    if (!country) {
+      toast.error('Please select a country');
+      return;
+    }
+
+    if (!state.trim()) {
+      toast.error('State is required');
+      return;
+    }
+
+    // Website URL validation (if provided)
+    if (website && !website.trim().startsWith('http')) {
+      toast.error('Please enter a valid website URL starting with http:// or https://');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const loadingToast = toast.loading('Creating organization...');
 
     try {
       // 1. Verify address and get nonce
@@ -56,14 +126,12 @@ function RegisterPage() {
       const token = authResponse.access;
       storeToken(token);
 
-
       // Prepare organization data
       const orgData = {
         name: formData.get('orgName') as string,
         email: formData.get('email') as string,
         organization_address: `${formData.get('address1')}, ${formData.get('address2')}, ${formData.get('state')}, ${formData.get('country')}`
       };
-
 
       const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
       if (!ethers.isAddress(contractAddress)) {
@@ -123,7 +191,9 @@ function RegisterPage() {
           // toast.error("Transaction failed");
           throw new Error(`Transaction failed with status ${receipt.status}. Transaction: ${JSON.stringify(txDetails)}`);
         }
-        toast.success('Organization created successfully!');
+        toast.success('Organization created successfully!', {
+          id: loadingToast
+        });
         router.push('/dashboard');
       } catch (error: unknown) {
         // Rollback: Delete backend record if chain transaction failed
@@ -156,10 +226,10 @@ function RegisterPage() {
         throw error;
       }
     } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Failed to register organization', {
+        id: loadingToast
+      });
       console.error('Registration error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to register organization';
-      throw new Error(errorMessage);
-      // toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -185,10 +255,6 @@ function RegisterPage() {
             <Image src="/logo.png" alt="Logo" width={120} height={120} />
           </Link>
         </div>
-        {/* <div className="flex items-center text-blue-400">
-          <span className="mr-2">✓</span>
-          <span className="text-sm text-gray-400">{displayAddress(address)}</span>
-        </div> */}
         <WalletButton />
       </header>
 

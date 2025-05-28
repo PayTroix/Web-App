@@ -1,33 +1,32 @@
 import { ethers } from 'ethers';
 import { payrollService } from '@/services/api';
-import toast from 'react-hot-toast';
 import orgAbi from '@/services/organization_abi.json';
 import { type Provider } from "@reown/appkit/react";
 
 interface DisburseSalaryParams {
     recipientId: number;
     recipientAddress: string;
-    amount: number;
+    amount: bigint;
     tokenAddress: string;
     paymentMonth: string;
     token: string;
     signer: ethers.Signer;
     contractAddress: string;
-    organizationId: number; // Add this
+    organizationId: number;
 }
 
 interface BatchDisburseSalaryParams {
     recipients: {
         id: number;
         address: string;
-        amount: number;
+        amount: bigint;
     }[];
     tokenAddress: string;
     paymentMonth: string;
     token: string;
     signer: ethers.Signer;
     contractAddress: string;
-    organizationId: number; // Add this
+    organizationId: number;
 }
 
 interface PayrollResult {
@@ -35,9 +34,29 @@ interface PayrollResult {
     transactionHash: string;
 }
 
-interface ContractErrorData {
-    data?: unknown;
+// interface ContractErrorData {
+//     data?: unknown;
+//     reason?: string;
+// }
+
+interface EthersError extends Error {
+    code?: string;
+    errorArgs?: unknown[];
+    errorName?: string;
+    errorSignature?: string;
     reason?: string;
+    transaction?: {
+        data?: string;
+        [key: string]: unknown;
+    };
+    error?: {
+        code?: number;
+        message?: string;
+        data?: string;
+    };
+    action?: string;
+    invocation?: unknown;
+    revert?: unknown;
 }
 
 export async function disburseSalaryAtomic({
@@ -49,7 +68,7 @@ export async function disburseSalaryAtomic({
     token,
     signer,
     contractAddress,
-    organizationId, // Add this parameter
+    organizationId,
 }: DisburseSalaryParams): Promise<PayrollResult> {
     // Validate inputs
     if (!ethers.isAddress(recipientAddress)) {
@@ -58,7 +77,10 @@ export async function disburseSalaryAtomic({
     if (!ethers.isAddress(contractAddress)) {
         throw new Error('Invalid contract address');
     }
-    if (amount <= 0) {
+    if (!ethers.isAddress(tokenAddress)) {
+        throw new Error('Invalid token address');
+    }
+    if (amount <= BigInt(0)) {
         throw new Error('Amount must be greater than 0');
     }
 
@@ -74,29 +96,81 @@ export async function disburseSalaryAtomic({
     }
 
     const payrollContract = new ethers.Contract(contractAddress, orgAbi, signer);
+    const tokenContract = new ethers.Contract(
+        tokenAddress,
+        [
+            'function allowance(address,address) view returns (uint256)',
+            'function approve(address,uint256) returns (bool)',
+            'function balanceOf(address) view returns (uint256)'
+        ],
+        signer
+    );
     let backendPayrollId: number | null = null;
 
     try {
+        // Check if contract supports token
+        const isSupported = await payrollContract.isTokenSupported(tokenAddress);
+        if (!isSupported) {
+            throw new Error('Token not supported by the contract');
+        }
+
+        // Check token allowance and approve if needed
+        const signerAddress = await signer.getAddress();
+        const currentAllowance = await tokenContract.allowance(signerAddress, contractAddress);
+
+        console.log('Token setup:', {
+            amount: amount.toString(),
+            currentAllowance: currentAllowance.toString(),
+            signerAddress,
+            contractAddress
+        });
+
+        if (currentAllowance < amount) {
+            console.log('Requesting token approval...');
+            const approveTx = await tokenContract.approve(
+                contractAddress,
+                ethers.MaxUint256 // Approve maximum amount
+            );
+            console.log('Approval transaction sent:', approveTx.hash);
+            await approveTx.wait();
+        }
+
+        // Check balance
+        const balance = await tokenContract.balanceOf(signerAddress);
+        if (balance < amount) {
+            throw new Error(
+                `Insufficient token balance. Required: ${amount.toString()}, Available: ${balance.toString()}`
+            );
+        }
+
         // 1. First create backend payroll record
         const payrollData = {
             recipient: recipientId,
             amount: amount.toString(),
-            date: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+            date: new Date().toISOString().split('T')[0],
             description: `Salary payment for ${paymentMonth}`,
             status: 'pending',
-            organization: organizationId, // Add this field
+            organization: organizationId,
         };
 
         const payrollResponse = await payrollService.createPayroll(payrollData, token);
         backendPayrollId = payrollResponse.id;
 
-        // 2. Execute on-chain disbursement
-
+        // 2. Execute on-chain disbursement with proper gas estimation
         const tx = await payrollContract.disburseToken(
             tokenAddress,
             recipientAddress,
-            ethers.parseUnits(amount.toString(), 6) // Assuming 18 decimals
+            amount,
+            {
+                gasLimit: await payrollContract.disburseToken.estimateGas(
+                    tokenAddress,
+                    recipientAddress,
+                    amount
+                ).catch(() => BigInt(500000)) // fallback gas limit
+            }
         );
+
+        console.log('Transaction sent:', tx.hash);
 
         const receipt = await tx.wait();
 
@@ -104,13 +178,21 @@ export async function disburseSalaryAtomic({
             throw new Error('Transaction failed');
         }
 
+        console.log('Transaction confirmed:', receipt.hash);
+
         // 3. Update backend record as completed
         await payrollService.updatePayrollStatus(backendPayrollId, 'completed', token);
 
-        toast.success('Salary disbursed successfully!');
         return { backendIds: [backendPayrollId], transactionHash: tx.hash };
 
     } catch (error) {
+        console.error('Disbursement error:', {
+            error,
+            code: error instanceof Error ? (error as EthersError).code : undefined,
+            reason: (error as EthersError).reason,
+            message: (error as Error).message
+        });
+
         // Rollback: Update backend record as failed if chain transaction failed
         if (backendPayrollId) {
             try {
@@ -120,32 +202,7 @@ export async function disburseSalaryAtomic({
             }
         }
 
-        if (error instanceof Error) {
-            // Check if it's a contract error
-            const contractError = error as ContractErrorData;
-            if ('data' in contractError && contractError.data) {
-                try {
-                    // Convert the error data to a hex string if it isn't already
-                    const errorData = typeof contractError.data === 'string' 
-                        ? contractError.data 
-                        : '0x' + Buffer.from(JSON.stringify(contractError.data)).toString('hex');
-                    
-                    const parsedError = payrollContract.interface.parseError(errorData);
-                    if (parsedError) {
-                        throw new Error(`Contract error: ${parsedError.name}`);
-                    }
-                } catch (parseError) {
-                    // If parsing fails, fall back to regular error handling
-                    console.error('Failed to parse contract error:', parseError);
-                }
-            }
-            
-            // Handle regular errors
-            const errorMessage = 'reason' in error ? error.reason as string : error.message;
-            throw new Error(`Transaction failed: ${errorMessage}`);
-        }
-        
-        throw error;
+        throw handleContractError(error, payrollContract);
     }
 }
 
@@ -156,11 +213,14 @@ export async function batchDisburseSalaryAtomic({
     token,
     signer,
     contractAddress,
-    organizationId, // Add this parameter
+    organizationId,
 }: BatchDisburseSalaryParams): Promise<PayrollResult> {
-    // Validate inputs
+    // Input validation
     if (!ethers.isAddress(contractAddress)) {
         throw new Error('Invalid contract address');
+    }
+    if (!ethers.isAddress(tokenAddress)) {
+        throw new Error('Invalid token address');
     }
     if (recipients.length === 0) {
         throw new Error('No recipients provided');
@@ -174,14 +234,39 @@ export async function batchDisburseSalaryAtomic({
     // Verify contract exists
     const code = await provider.getCode(contractAddress);
     if (code === '0x') {
-        throw new Error('No contract found at the specified address');
+        throw new Error('No contract found at specified address');
     }
 
     const payrollContract = new ethers.Contract(contractAddress, orgAbi, signer);
     const backendPayrollIds: number[] = [];
 
     try {
-        // 1. First create backend payroll records
+        // Prepare transaction data
+        const addresses = recipients.map(r => {
+            if (!ethers.isAddress(r.address)) {
+                throw new Error(`Invalid recipient address: ${r.address}`);
+            }
+            return r.address;
+        });
+
+        const amounts = recipients.map(r => {
+            if (r.amount <= BigInt(0)) {
+                throw new Error(`Invalid amount for recipient ${r.address}`);
+            }
+            return r.amount;
+        });
+
+        // Calculate total amount for logging
+        const totalAmount = amounts.reduce((sum, amount) => sum + amount, BigInt(0));
+        console.log('Batch disbursement details:', {
+            recipientCount: recipients.length,
+            totalAmount: totalAmount.toString(),
+            tokenAddress,
+            paymentMonth
+        });
+
+        // 1. Create pending backend records first
+        const batchRef = `BATCH-${Date.now()}`;
         const createPromises = recipients.map(recipient => {
             const payrollData = {
                 recipient: recipient.id,
@@ -189,8 +274,8 @@ export async function batchDisburseSalaryAtomic({
                 date: new Date().toISOString().split('T')[0],
                 description: `Salary payment for ${paymentMonth}`,
                 status: 'pending',
-                batch_reference: `BATCH-${Date.now()}`,
-                organization: organizationId, // Add this field
+                batch_reference: batchRef,
+                organization: organizationId,
             };
             return payrollService.createPayroll(payrollData, token);
         });
@@ -198,73 +283,169 @@ export async function batchDisburseSalaryAtomic({
         const payrollResponses = await Promise.all(createPromises);
         backendPayrollIds.push(...payrollResponses.map(r => r.id));
 
-        // 2. Prepare data for batch disbursement
-        const addresses = recipients.map(r => r.address);
-        const amounts = recipients.map(r => ethers.parseUnits(r.amount.toString(), 6));
+        console.log('Created backend records:', backendPayrollIds);
 
-        // 3. Execute batch disbursement
+        // 2. Execute blockchain transaction
+        console.log('Executing blockchain transaction...');
+
+        // Check if contract supports token
+        const isSupported = await payrollContract.isTokenSupported(tokenAddress);
+        if (!isSupported) {
+            throw new Error('Token not supported by the contract');
+        }
+
+        // Execute batch disbursement with proper gas estimation
         const tx = await payrollContract.batchDisburseToken(
             tokenAddress,
             addresses,
-            amounts
+            amounts,
+            {
+                gasLimit: await payrollContract.batchDisburseToken.estimateGas(
+                    tokenAddress,
+                    addresses,
+                    amounts
+                ).catch(() => BigInt(5000000)) // fallback gas limit
+            }
         );
 
+        console.log('Transaction sent:', tx.hash);
+
+        // Wait for transaction confirmation
         const receipt = await tx.wait();
 
         if (!receipt || receipt.status !== 1) {
-            throw new Error('Batch transaction failed');
+            throw new Error('Transaction failed on-chain');
         }
 
-        // 4. Update all backend records as completed
+        console.log('Transaction confirmed:', receipt.hash);
+
+        // 3. Update backend records as completed
+        console.log('Updating backend records as completed...');
         await Promise.all(
             backendPayrollIds.map(id =>
                 payrollService.updatePayrollStatus(id, 'completed', token)
             )
         );
 
-        toast.success(`Successfully disbursed salaries to ${recipients.length} recipients!`);
-        return { backendIds: backendPayrollIds, transactionHash: tx.hash };
+        return {
+            backendIds: backendPayrollIds,
+            transactionHash: receipt.hash
+        };
 
-    } catch (error) {
-        // Rollback: Update all backend records as failed
+    } catch (error: unknown) {
+        console.error('Batch disbursement error:', {
+            error,
+            code: error instanceof Error ? (error as EthersError).code : undefined,
+            reason: (error as EthersError).reason,
+            message: (error as Error).message,
+            data: (error as EthersError).error?.data
+        });
+
+        // Handle backend rollback
         if (backendPayrollIds.length > 0) {
+            console.log('Rolling back backend records...');
             try {
                 await Promise.all(
                     backendPayrollIds.map(id =>
-                        payrollService.updatePayrollStatus(id, 'failed', token))
+                        payrollService.updatePayrollStatus(id, 'failed', token)
+                    )
                 );
             } catch (rollbackError) {
                 console.error('Failed to update payroll statuses:', rollbackError);
             }
         }
 
-        if (error instanceof Error) {
-            // Check if it's a contract error
-            const contractError = error as ContractErrorData;
-            if ('data' in contractError && contractError.data) {
-                try {
-                    // Convert the error data to a hex string if it isn't already
-                    const errorData = typeof contractError.data === 'string' 
-                        ? contractError.data 
-                        : '0x' + Buffer.from(JSON.stringify(contractError.data)).toString('hex');
-                    
-                    const parsedError = payrollContract.interface.parseError(errorData);
-                    if (parsedError) {
-                        throw new Error(`Contract error: ${parsedError.name}`);
+        // Type cast error to EthersError
+        const ethError = error as EthersError;
+
+        // Handle specific contract errors
+        if (ethError.code === 'CALL_EXCEPTION') {
+            try {
+                if ((error as EthersError).error?.data) {
+                    const decodedError = payrollContract.interface.parseError((error as EthersError).error?.data as string);
+                    if (decodedError) {
+                        throw new Error(
+                            `Contract error: ${decodedError.name}(${decodedError.args.join(', ')})`
+                        );
                     }
-                } catch (parseError) {
-                    // If parsing fails, fall back to regular error handling
-                    console.error('Failed to parse contract error:', parseError);
                 }
+            } catch (decodeError) {
+                console.error('Error decoding contract error:', decodeError);
             }
-            
-            // Handle regular errors
-            const errorMessage = 'reason' in error ? error.reason as string : error.message;
-            throw new Error(`Batch disbursement failed: ${errorMessage}`);
         }
 
-        throw error;
+        // Provide meaningful error message based on error type
+
+        let errorMessage = 'Batch disbursement failed: ';
+        if (ethError.reason) {
+            errorMessage += ethError.reason;
+        } else if (ethError.code === 'UNPREDICTABLE_GAS_LIMIT') {
+            errorMessage += 'Transaction would fail - check token allowance and balances';
+        } else if (ethError.message.includes('user rejected')) {
+            errorMessage += 'Transaction was rejected by user';
+        } else {
+            errorMessage += ethError.message || 'Unknown error';
+        }
+
+        throw new Error(errorMessage);
     }
+}
+
+// Improved error handling function
+function handleContractError(error: unknown, contract: ethers.Contract): Error {
+    const ethersError = error as EthersError;
+
+    if (ethersError.action === 'estimateGas' && ethersError.code === 'CALL_EXCEPTION') {
+        // Try to parse the transaction data to understand what failed
+        if (ethersError.transaction?.data) {
+            try {
+                const decodedTx = contract.interface.parseError(ethersError.transaction.data);
+                if (decodedTx) {
+                    return new Error(`Transaction would fail when calling ${decodedTx.name} with args: ${JSON.stringify(decodedTx.args)}. Possible reasons: insufficient balance, allowance, or invalid parameters.`);
+                }
+            } catch (parseError) {
+                console.error('Failed to parse transaction data:', parseError);
+            }
+        }
+        return new Error('Transaction would fail. Possible reasons: insufficient balance, allowance, or invalid parameters.');
+    }
+
+    // Handle custom contract errors
+    if (ethersError.error?.data) {
+        try {
+            const decodedError = contract.interface.parseError(ethersError.error.data);
+            if (decodedError) {
+                return new Error(`Contract error: ${decodedError.name}(${decodedError.args.join(', ')})`);
+            }
+        } catch (parseError) {
+            console.error('Failed to decode custom error:', parseError);
+        }
+    }
+
+    // Handle revert strings
+    if (ethersError.reason) {
+        return new Error(`Transaction reverted: ${ethersError.reason}`);
+    }
+
+    // Handle other ethers.js errors
+    if (ethersError.code === 'UNPREDICTABLE_GAS_LIMIT') {
+        return new Error('Transaction would fail - check token allowance and balance');
+    }
+
+    if (ethersError.code === 'INSUFFICIENT_FUNDS') {
+        return new Error('Insufficient funds for transaction');
+    }
+
+    if (ethersError.code === 'CALL_EXCEPTION') {
+        return new Error('Contract call exception - check contract state and parameters');
+    }
+
+    // Fallback to original error if we can't parse it
+    if (error instanceof Error) {
+        return error;
+    }
+
+    return new Error('Unknown contract error occurred');
 }
 
 // Helper function to get contract address

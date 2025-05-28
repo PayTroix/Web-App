@@ -4,9 +4,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { JSX } from 'react/jsx-runtime';
-import WalletButton from './WalletButton';
+import WalletButton from '../WalletButton';
 import LeaveRequest from './LeaveRequest';
 import { MdOutlineDashboard } from "react-icons/md";
+import { useWalletRedirect } from '@/hooks/useWalletRedirect';
 
 interface NavItem {
   label: string;
@@ -15,6 +16,7 @@ interface NavItem {
 }
 
 export const Header: FC = () => {
+  useWalletRedirect();
   const [showLeaveRequest, setShowLeaveRequest] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -23,7 +25,7 @@ export const Header: FC = () => {
       <header className="flex justify-between items-center px-4 md:px-6 py-4 bg-black h-20 border-b border-gray-800/50 sticky top-0 z-30">
         <div className="flex items-center gap-4">
           {/* Mobile menu button */}
-          <button 
+          <button
             className="md:hidden text-gray-400 hover:text-white"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
@@ -35,16 +37,16 @@ export const Header: FC = () => {
               )}
             </svg>
           </button>
-          
-          <Image 
-            src="/logo.png" 
-            alt="Logo" 
-            width={120} 
+
+          <Image
+            src="/logo.png"
+            alt="Logo"
+            width={120}
             height={40}
-            className="transition-transform hover:scale-105 w-24 md:w-32 h-auto" 
+            className="transition-transform hover:scale-105 w-24 md:w-32 h-auto"
           />
         </div>
-        
+
         <div className="flex items-center gap-3 md:gap-6">
           <button
             onClick={() => setShowLeaveRequest(true)}
@@ -57,7 +59,7 @@ export const Header: FC = () => {
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
             <span className="">Leave Request</span>
-           
+
           </button>
 
           <WalletButton className="scale-90 md:scale-100" />
@@ -66,9 +68,12 @@ export const Header: FC = () => {
 
       {/* Modal Overlay */}
       {showLeaveRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center px-4">
-          <div className="relative w-full max-w-4xl">
-            <LeaveRequest onClose={() => setShowLeaveRequest(false)} />
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <div className="relative w-full max-w-3xl">
+              <LeaveRequest onClose={() => setShowLeaveRequest(false)} />
+            </div>
           </div>
         </div>
       )}
@@ -80,28 +85,28 @@ export const Sidebar: FC = () => {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+
   const mainNavItems: NavItem[] = [
     {
       label: 'Dashboard',
-      href: '/dashboard',
+      href: '/recipient',
       icon: <MdOutlineDashboard className="text-blue-500" size={20} />,
     },
-    {
-      label: 'Wallet',
-      href: '/wallet',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      ),
-    },
+    // {
+    //   label: 'Wallet',
+    //   href: '/wallet',
+    //   icon: (
+    //     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+    //       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    //       <circle cx="9" cy="7" r="4" />
+    //       <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    //       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    //     </svg>
+    //   ),
+    // },
     {
       label: 'Salary Advance',
-      href: '/salaryAdvance',
+      href: '/salary-advance',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -111,7 +116,7 @@ export const Sidebar: FC = () => {
         </svg>
       ),
     },
-    
+
   ];
 
   const settingsItem: NavItem = {
@@ -128,14 +133,13 @@ export const Sidebar: FC = () => {
   const renderNavItem = (item: NavItem) => {
     const isActive = pathname === item.href;
     return (
-      <Link 
-        key={item.href} 
+      <Link
+        key={item.href}
         href={item.href}
-        className={`flex items-center py-3 px-4 rounded-lg mb-2 transition-colors ${
-          isActive 
-            ? 'bg-blue-950 text-blue-500' 
+        className={`flex items-center py-3 px-4 rounded-lg mb-2 transition-colors ${isActive
+            ? 'bg-blue-950 text-blue-500'
             : 'text-gray-400 hover:bg-[#01182C] hover:text-white'
-        }`}
+          }`}
         title={isCollapsed ? item.label : ''}
         onClick={() => setMobileMenuOpen(false)}
       >
@@ -151,7 +155,7 @@ export const Sidebar: FC = () => {
     <>
       {/* Mobile sidebar overlay */}
       {mobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-60 z-10 md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
@@ -164,7 +168,7 @@ export const Sidebar: FC = () => {
         transition-all duration-300 fixed md:relative
         z-20 border-r border-gray-800/50
       `}>
-        <button 
+        <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="absolute -right-3 top-6 w-6 h-6 rounded-full 
             bg-black flex items-center justify-center text-white 

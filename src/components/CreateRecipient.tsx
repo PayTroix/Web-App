@@ -5,13 +5,13 @@ import { TbCurrencyEthereum } from "react-icons/tb";
 import toast from 'react-hot-toast';
 import { createBatchRecipientsAtomic, createRecipientAtomic } from '@/services/createRecipient';
 import { ethers } from 'ethers';
-import { profileService } from '@/services/api';
 import { useAppKitNetworkCore, useAppKitProvider, type Provider } from '@reown/appkit/react';
 import { useAppKitAccount } from '@reown/appkit/react';
 import { getToken, isTokenExpired } from '@/utils/token';
 import abi from '@/services/abi.json';
+import { downloadCsvTemplate } from '@/utils/csvHelper';
 
-interface Recipient {
+export interface Recipient {
   name: string;
   email: string;
   recipient_ethereum_address: string;
@@ -80,6 +80,7 @@ export default function CreateRecipient({ onClose, onSuccess }: CreateRecipientP
 
     Papa.parse(file, {
       header: true,
+      dynamicTyping: true,
       complete: (results) => {
         const parsedData = results.data as Partial<Recipient>[];
         if (parsedData.length === 0) {
@@ -94,8 +95,14 @@ export default function CreateRecipient({ onClose, onSuccess }: CreateRecipientP
           return;
         }
 
+        // Format salary to 6 decimal places
+        const formattedData = parsedData.map(row => ({
+          ...row,
+          salary: row.salary ? Number(row.salary).toFixed(6) : '0.000000'
+        }));
+
         // Filter out invalid rows
-        const validData = parsedData.filter(item =>
+        const validData = formattedData.filter(item =>
           item.name &&
           item.email &&
           item.recipient_ethereum_address &&
@@ -468,12 +475,19 @@ export default function CreateRecipient({ onClose, onSuccess }: CreateRecipientP
 
                 <div>
                   <label className="text-xs mb-1 text-gray-300">
-                    Salary (ETH) *
+                    Salary *
                   </label>
                   <input
-                    type="text"
+                    type="number"
+                    step="0.000001"
+                    min="0"
                     value={recipient.salary}
-                    onChange={(e) => handleInputChange(index, 'salary', e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Format to 6 decimal places max
+                      const formatted = Number(value).toFixed(6);
+                      handleInputChange(index, 'salary', formatted);
+                    }}
                     placeholder="0.00"
                     disabled={isSubmitting}
                     className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
@@ -527,6 +541,7 @@ export default function CreateRecipient({ onClose, onSuccess }: CreateRecipientP
       {/* Template + Save Button */}
       <div className="flex justify-between items-center mt-6">
         <button
+          onClick={downloadCsvTemplate}
           className="border border-gray-600 px-4 py-2 rounded-md text-sm hover:bg-gray-800 transition"
           disabled={isSubmitting}
         >

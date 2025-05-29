@@ -114,6 +114,9 @@ export const PayrollContent = () => {
   // Add this state
   const [payrollWithRecipients, setPayrollWithRecipients] = useState<PayrollWithRecipient[]>([]);
 
+  // Add this state near your other state declarations
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
+
   const router = useRouter();
 
   // Track previous address to detect actual changes
@@ -155,6 +158,10 @@ export const PayrollContent = () => {
 
         if (recipientProfiles && recipientProfiles.recipients) {
           const allRecipients = recipientProfiles.recipients;
+
+          // Store the raw recipients data
+          setRecipients(allRecipients);
+
           setTotalEmployees(allRecipients.length);
 
           // Filter active employees
@@ -183,7 +190,7 @@ export const PayrollContent = () => {
     };
 
     fetchData();
-  }, [isConnected, address, walletProvider, chainId, getTokenBalances]);
+  }, [isConnected, address, walletProvider, chainId, getTokenBalances, selectedToken]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -483,28 +490,28 @@ export const PayrollContent = () => {
     }
   };
 
+  // Now update the calculateTotalAmount function to use the recipients state
   const calculateTotalAmount = () => {
     try {
       if (selectedGroup === 'all') {
-        return employees.reduce((sum, emp) => {
-          const amount = emp.salary.replace('$', '').split('(')[0];
-          return sum + Number(ethers.formatUnits(amount, 6));
+        return recipients.reduce((sum, recipient) => {
+          return sum + (recipient.salary || 0);
         }, 0);
       } else if (selectedGroup === 'active') {
-        return employees
-          .filter(emp => emp.status !== 'Pending')
-          .reduce((sum, emp) => {
-            const amount = emp.salary.replace('$', '').split('(')[0];
-            return sum + Number(ethers.formatUnits(amount, 6));
+        return recipients
+          .filter(recipient => recipient.status === 'active')
+          .reduce((sum, recipient) => {
+            return sum + (recipient.salary || 0);
           }, 0);
-      } else {
-        return employees
-          .filter(emp => emp.status === 'Pending')
-          .reduce((sum, emp) => {
-            const amount = emp.salary.replace('$', '').split('(')[0];
-            return sum + Number(ethers.formatUnits(amount, 6));
+      } else if (selectedGroup === 'onLeave') {
+        return recipients
+          .filter(recipient => recipient.status === 'on_leave')
+          .reduce((sum, recipient) => {
+            return sum + (recipient.salary || 0);
           }, 0);
       }
+
+      return 0;
     } catch (error) {
       console.error('Error calculating total amount:', error);
       return 0;

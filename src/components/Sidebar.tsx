@@ -22,11 +22,16 @@ export const Header: FC = () => {
   return (
     <>
       <header className="flex justify-between items-center px-4 md:px-6 py-4 bg-black h-20 border-b border-gray-800/50 sticky top-0 z-30">
-        <div className="flex items-center gap-4">
-          {/* Mobile menu button */}
+        <div className="flex items-center gap-4">      {/* Mobile menu button */}
           <button
-            className="md:hidden text-gray-400 hover:text-white"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden text-gray-400 hover:text-white z-50"
+            onClick={() => {
+              setMobileMenuOpen(!mobileMenuOpen);
+              const sidebarElement = document.querySelector('aside');
+              if (sidebarElement) {
+                sidebarElement.classList.toggle('-translate-x-full');
+              }
+            }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               {mobileMenuOpen ? (
@@ -191,17 +196,22 @@ export const Sidebar: FC = () => {
       {/* Mobile sidebar overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-60 z-10 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 bg-black bg-opacity-60 md:hidden z-30"
+          onClick={() => {
+            setMobileMenuOpen(false);
+            const sidebarElement = document.querySelector('aside');
+            if (sidebarElement) {
+              sidebarElement.classList.add('-translate-x-full');
+            }
+          }}
         />
-      )}
-
-      <aside className={`
+      )}<aside className={`
         ${isCollapsed ? 'w-16' : 'w-64'} 
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         min-h-screen bg-black text-white flex flex-col 
         transition-all duration-300 fixed md:relative
-        z-20 border-r border-gray-800/50
+        z-40 border-r border-gray-800/50
+        md:top-0 top-[80px]
       `}>
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}

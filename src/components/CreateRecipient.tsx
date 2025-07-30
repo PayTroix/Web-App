@@ -237,19 +237,19 @@ export default function CreateRecipient({ onClose, onSuccess }: CreateRecipientP
       const signer = await provider.getSigner();
       console.log('Signer obtained:', signer); // Debug log
 
-      const factoryContractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS;
+      const factoryContractAddress = process.env.NEXT_PUBLIC_MORPH_CONTRACT_ADDRESS as string;
       if (!factoryContractAddress) {
         throw new Error('Factory contract address not found in environment variables');
       }
       console.log('Factory contract address:', factoryContractAddress); // Debug log
 
       const factoryContract = new ethers.Contract(factoryContractAddress, abi, provider);
-      const contractAddress = await factoryContract.getOrganizationContract(address);
+      const organizationContractAddress = await factoryContract.getOrganizationContract(address);
 
-      if (!contractAddress || !ethers.isAddress(contractAddress)) {
+      if (!organizationContractAddress || !ethers.isAddress(organizationContractAddress)) {
         throw new Error('Invalid contract address');
       }
-      console.log('Contract address:', contractAddress); // Debug log
+      console.log('Contract address:', organizationContractAddress); // Debug log
 
 
       // Prepare recipients data
@@ -276,7 +276,7 @@ export default function CreateRecipient({ onClose, onSuccess }: CreateRecipientP
           position: recipient.position || '',
           token,
           signer,
-          contractAddress
+          contractAddress: organizationContractAddress
         });
         console.log('Single recipient created:', result); // Debug log
       } else {
@@ -293,7 +293,7 @@ export default function CreateRecipient({ onClose, onSuccess }: CreateRecipientP
           // organizationId,
           token,
           signer,
-          contractAddress
+          contractAddress: organizationContractAddress
         });
         console.log('Batch recipients created:', result); // Debug log
       }

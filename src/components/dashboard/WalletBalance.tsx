@@ -7,7 +7,7 @@ const WalletBalance = () => {
   const { walletProvider } = useAppKitProvider<Provider>('eip155');
 
   const { balances, getTokenBalances } = useTokenBalances();
-  const balance = balances.loading ? '...' : balances.USDT || balances.USDC || '0';
+  const balance = balances.loading ? '...' : balances.TOKEN || '0';
 
   useEffect(() => {
     if (isConnected && address && walletProvider) {
@@ -42,7 +42,7 @@ const WalletBalance = () => {
               balance
             )}
           </h2>
-          <p className="text-gray-400 text-sm">(USDT)</p>
+          <p className="text-gray-400 text-sm">(TOKEN)</p>
         </div>
       </div>
     </div>

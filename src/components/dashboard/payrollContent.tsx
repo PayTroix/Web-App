@@ -53,8 +53,7 @@ const transitionClasses = {
 
 
 const SUPPORTED_TOKENS = [
-  { symbol: 'USDT', name: 'Tether USD' },
-  { symbol: 'USDC', name: 'USD Coin' }
+  { symbol: 'TOKEN', name: 'Morph Holesky Token' }
 ];
 
 const MONTHS = [
@@ -274,7 +273,7 @@ export const PayrollContent = () => {
       const provider = new ethers.BrowserProvider(walletProvider, chainId);
       const signer = await provider.getSigner();
 
-      const factoryContractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS;
+      const factoryContractAddress = process.env.NEXT_PUBLIC_MORPH_CONTRACT_ADDRESS;
       if (!factoryContractAddress) {
         throw new Error('Factory contract address not configured');
       }
@@ -294,13 +293,13 @@ export const PayrollContent = () => {
 
       const payrollContract = new ethers.Contract(contractAddress, orgAbi, signer);
 
-      const usdtAddress = process.env.NEXT_PUBLIC_USDT_ADDRESS;
-      if (!usdtAddress) {
-        throw new Error('USDT token address not found');
+      const tokenAddress = process.env.NEXT_PUBLIC_TOKEN_ADDRESS;
+      if (!tokenAddress) {
+        throw new Error('Token address not found');
       }
 
-      const usdtContract = new ethers.Contract(
-        usdtAddress,
+      const tokenContract = new ethers.Contract(
+        tokenAddress,
         ['function allowance(address,address) view returns (uint256)',
           'function approve(address,uint256) returns (bool)',
           'function balanceOf(address) view returns (uint256)'],
@@ -308,10 +307,10 @@ export const PayrollContent = () => {
       );
 
 
-      const usdtDecimals = 6;
+      const tokenDecimals = 6;
       console.log('Token setup:', {
-        decimals: usdtDecimals,
-        tokenAddress: usdtAddress,
+        decimals: tokenDecimals,
+        tokenAddress: tokenAddress,
         contractAddress: contractAddress
       });
 
@@ -324,7 +323,7 @@ export const PayrollContent = () => {
 
       const parsedAmount = ethers.parseUnits(
         totalNetAmount.toString(),
-        usdtDecimals
+        tokenDecimals
       );
 
 
@@ -333,7 +332,7 @@ export const PayrollContent = () => {
       );
 
 
-      const currentAllowance = await usdtContract.allowance(address, contractAddress);
+      const currentAllowance = await tokenContract.allowance(address, contractAddress);
       console.log('Allowance check:', {
         current: ethers.formatUnits(currentAllowance, 6),
         required: ethers.formatUnits(totalGrossAmount, 6)
@@ -341,7 +340,7 @@ export const PayrollContent = () => {
 
       if (currentAllowance < totalGrossAmount) {
         console.log('Requesting token approval...');
-        const approveTx = await usdtContract.approve(
+        const approveTx = await tokenContract.approve(
           contractAddress,
           totalGrossAmount
         );
@@ -351,10 +350,10 @@ export const PayrollContent = () => {
       }
 
 
-      const balance = await usdtContract.balanceOf(address);
+      const balance = await tokenContract.balanceOf(address);
       if (balance < totalGrossAmount) {
         throw new Error(
-          `Insufficient USDT balance. Required: ${ethers.formatUnits(totalGrossAmount, 6)} USDT`
+          `Insufficient token balance. Required: ${ethers.formatUnits(totalGrossAmount, 6)} tokens`
         );
       }
 
@@ -367,7 +366,7 @@ export const PayrollContent = () => {
 
       console.log('Disbursement data:', {
         recipients,
-        tokenAddress: process.env.NEXT_PUBLIC_USDT_ADDRESS,
+        tokenAddress: process.env.NEXT_PUBLIC_TOKEN_ADDRESS,
         paymentMonth,
         contractAddress,
         organizationId
@@ -381,9 +380,9 @@ export const PayrollContent = () => {
           id: r.id
         })),
         contractAddress,
-        usdtAddress,
-        balance: await usdtContract.balanceOf(address),
-        allowance: await usdtContract.allowance(address, contractAddress),
+        tokenAddress,
+        balance: await tokenContract.balanceOf(address),
+        allowance: await tokenContract.allowance(address, contractAddress),
         totalAmount: totalGrossAmount
       });
 
@@ -393,7 +392,7 @@ export const PayrollContent = () => {
           recipientId: recipient.id,
           recipientAddress: recipient.address,
           amount: recipient.amount,
-          tokenAddress: usdtAddress,
+          tokenAddress: tokenAddress,
           paymentMonth,
           token,
           signer,
@@ -403,7 +402,7 @@ export const PayrollContent = () => {
       } else {
         await batchDisburseSalaryAtomic({
           recipients,
-          tokenAddress: usdtAddress,
+          tokenAddress: tokenAddress,
           paymentMonth,
           token,
           signer,
@@ -591,10 +590,10 @@ export const PayrollContent = () => {
                 {balances.loading ? (
                   <div className="animate-pulse bg-gray-700 h-8 w-32 rounded" />
                 ) : (
-                  `$${balances.USDT || '0'}`
+                  `$${balances.TOKEN || '0'}`
                 )}
               </h2>
-              <p className="text-gray-400 text-sm">(USDT)</p>
+              <p className="text-gray-400 text-sm">(TOKEN)</p>
             </div>
           </div>
         </div>
@@ -735,7 +734,7 @@ export const PayrollContent = () => {
                   </div>
                   <span className="text-3xl">
                     ${calculateTotalAmount().toFixed(2)}
-                    <span className="text-gray-400 text-sm ml-1">USDT</span>
+                    <span className="text-gray-400 text-sm ml-1">TOKEN</span>
                   </span>
                 </div>
               </div>
@@ -919,7 +918,7 @@ export const PayrollContent = () => {
                       </div>
                       <div className="text-white font-medium">
                         {formatCurrency(payroll.amount)}
-                        <span className="text-gray-400 text-sm ml-1">USDT</span>
+                        <span className="text-gray-400 text-sm ml-1">TOKEN</span>
                       </div>
                       <div>
                         <span className={`

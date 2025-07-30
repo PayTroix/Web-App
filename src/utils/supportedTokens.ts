@@ -1,14 +1,8 @@
 export const SUPPORTED_TOKENS = [
     {
-        symbol: 'USDT',
-        name: 'Tether USD',
-        address: process.env.NEXT_PUBLIC_USDT_ADDRESS || '',
-        decimals: 6
-    },
-    {
-        symbol: 'USDC',
-        name: 'USD Coin',
-        address: process.env.NEXT_PUBLIC_USDC_ADDRESS || '',
+        symbol: 'TOKEN',
+        name: 'Morph Holesky Token',
+        address: process.env.NEXT_PUBLIC_TOKEN_ADDRESS || '',
         decimals: 6
     }
 ] as const;

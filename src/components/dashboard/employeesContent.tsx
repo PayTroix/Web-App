@@ -47,7 +47,7 @@ export const EmployeesContent = () => {
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [activeEmployees, setActiveEmployees] = useState(0);
   const { balances, getTokenBalances } = useTokenBalances();
-  const balance = balances.loading ? '...' : balances.USDT || balances.USDC || '0';
+  const balance = balances.loading ? '...' : balances.TOKEN || '0';
   const [showCreateModal, setShowCreateModal] = useState(false);
   const router = useRouter();
   const [leaveRequests, setLeaveRequests] = useState<number>(0);
@@ -99,7 +99,7 @@ export const EmployeesContent = () => {
         storeToken(authResponse.access); // Default to 1 hour if not provided
       }
 
-      if (balances.USDT === '0' && balances.USDC === '0' && !balances.loading) {
+      if (balances.TOKEN === '0' && !balances.loading) {
         await getTokenBalances(address, walletProvider);
       }
 
@@ -122,7 +122,7 @@ export const EmployeesContent = () => {
       setTotalEmployees(transformedEmployees.length);
       setActiveEmployees(transformedEmployees.filter(e => e.status === 'active').length);
 
-      const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
+      const contractAddress = process.env.NEXT_PUBLIC_MORPH_CONTRACT_ADDRESS as string;
       const payrollContract = new ethers.Contract(contractAddress, abi, signer);
 
       const _orgDetails = await payrollContract.getOrganizationDetails(address);
@@ -146,7 +146,7 @@ export const EmployeesContent = () => {
     } finally {
       setLoading(false);
     }
-  }, [isConnected, address, walletProvider, chainId, balances.USDT, balances.USDC, balances.loading, getTokenBalances, router]);
+  }, [isConnected, address, walletProvider, chainId, balances.TOKEN, balances.loading, getTokenBalances, router]);
 
   useEffect(() => {
     fetchData();

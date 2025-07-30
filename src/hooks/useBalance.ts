@@ -15,56 +15,42 @@ const ERC20_ABI = [
 ];
 
 // Improved token address validation with better error handling
-const getTokenAddresses = () => {
+const getTokenAddress = () => {
   // For SSR support
   if (typeof window === 'undefined') {
-    return { USDT: null, USDC: null };
+    return null;
   }
 
-  const addresses = {
-    USDT: process.env.NEXT_PUBLIC_USDT_ADDRESS,
-    USDC: process.env.NEXT_PUBLIC_USDC_ADDRESS,
-  };
+  const tokenAddress = process.env.NEXT_PUBLIC_TOKEN_ADDRESS;
 
   // Log helpful debugging information
-  if (!addresses.USDT) {
-    console.warn('NEXT_PUBLIC_USDT_ADDRESS is not defined in environment variables');
-  } else if (!ethers.isAddress(addresses.USDT)) {
-    console.warn(`Invalid USDT address: ${addresses.USDT}`);
+  if (!tokenAddress) {
+    console.warn('NEXT_PUBLIC_TOKEN_ADDRESS is not defined in environment variables');
+  } else if (!ethers.isAddress(tokenAddress)) {
+    console.warn(`Invalid token address: ${tokenAddress}`);
   }
 
-  if (!addresses.USDC) {
-    console.warn('NEXT_PUBLIC_USDC_ADDRESS is not defined in environment variables');
-  } else if (!ethers.isAddress(addresses.USDC)) {
-    console.warn(`Invalid USDC address: ${addresses.USDC}`);
-  }
-
-  return {
-    USDT: addresses.USDT && ethers.isAddress(addresses.USDT) ? addresses.USDT : null,
-    USDC: addresses.USDC && ethers.isAddress(addresses.USDC) ? addresses.USDC : null,
-  };
+  return tokenAddress && ethers.isAddress(tokenAddress) ? tokenAddress : null;
 };
 
 interface TokenBalance {
-  USDT: string;
-  USDC: string;
+  TOKEN: string;
   loading: boolean;
   error: string | null;
 }
 
 const useTokenBalances = () => {
   const [balances, setBalances] = useState<TokenBalance>({
-    USDT: '0',
-    USDC: '0',
+    TOKEN: '0',
     loading: false,
     error: null,
   });
 
   // Check token configuration on mount
   useEffect(() => {
-    const addresses = getTokenAddresses();
-    if (!addresses.USDT || !addresses.USDC) {
-      console.warn('Token addresses not properly configured. Check your environment variables.');
+    const address = getTokenAddress();
+    if (!address) {
+      console.warn('Token address not properly configured. Check your environment variables.');
     }
   }, []);
 
@@ -72,30 +58,19 @@ const useTokenBalances = () => {
     try {
       setBalances(prev => ({ ...prev, loading: true, error: null }));
 
-      const addresses = getTokenAddresses();
-      const missingAddresses = [];
+      const tokenAddress = getTokenAddress();
 
-      if (!addresses.USDT) missingAddresses.push('USDT');
-      if (!addresses.USDC) missingAddresses.push('USDC');
-
-      if (missingAddresses.length > 0) {
-        throw new Error(`Token addresses not configured: ${missingAddresses.join(', ')}`);
+      if (!tokenAddress) {
+        throw new Error('Token address not configured');
       }
 
       const ethersProvider = new ethers.BrowserProvider(provider);
 
-      // Get all available token balances
-      const results = await Promise.allSettled([
-        fetchTokenBalance(addresses.USDT, walletAddress, ethersProvider),
-        fetchTokenBalance(addresses.USDC, walletAddress, ethersProvider),
-      ]);
-
-      const usdtResult = results[0];
-      const usdcResult = results[1];
+      // Get token balance
+      const balance = await fetchTokenBalance(tokenAddress, walletAddress, ethersProvider);
 
       setBalances({
-        USDT: usdtResult.status === 'fulfilled' ? usdtResult.value : '0',
-        USDC: usdcResult.status === 'fulfilled' ? usdcResult.value : '0',
+        TOKEN: balance,
         loading: false,
         error: null,
       });

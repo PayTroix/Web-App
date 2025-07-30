@@ -2,8 +2,8 @@
 
 import { createAppKit } from "@reown/appkit/react";
 import { EthersAdapter } from "@reown/appkit-adapter-ethers";
-import { mainnet, sepolia, lisk, liskSepolia, base, baseSepolia } from "@reown/appkit/networks";
 import { ReactNode } from "react";
+import { morphHolesky } from "../config/networks";
 
 export const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
 if (!projectId) {
@@ -22,8 +22,8 @@ const metadata = {
 createAppKit({
   adapters: [new EthersAdapter()],
   projectId,
-  networks: [mainnet, sepolia, lisk, liskSepolia, base, baseSepolia],
-  defaultNetwork: liskSepolia,
+  networks: [morphHolesky],
+  defaultNetwork: morphHolesky,
   metadata: metadata,
   features: {
     email: true,

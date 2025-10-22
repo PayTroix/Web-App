@@ -122,7 +122,7 @@ export const EmployeesContent = () => {
       setTotalEmployees(transformedEmployees.length);
       setActiveEmployees(transformedEmployees.filter(e => e.status === 'active').length);
 
-      const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
+      const contractAddress = process.env.NEXT_PUBLIC_BASE_SEPOLIA_CONTRACT_ADDRESS as string;
       const payrollContract = new ethers.Contract(contractAddress, abi, signer);
 
       const _orgDetails = await payrollContract.getOrganizationDetails(address);

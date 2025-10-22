@@ -274,7 +274,7 @@ export const PayrollContent = () => {
       const provider = new ethers.BrowserProvider(walletProvider, chainId);
       const signer = await provider.getSigner();
 
-      const factoryContractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS;
+      const factoryContractAddress = process.env.NEXT_PUBLIC_BASE_SEPOLIA_CONTRACT_ADDRESS;
       if (!factoryContractAddress) {
         throw new Error('Factory contract address not configured');
       }

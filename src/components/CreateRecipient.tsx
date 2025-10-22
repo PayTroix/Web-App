@@ -237,7 +237,7 @@ export default function CreateRecipient({ onClose, onSuccess }: CreateRecipientP
       const signer = await provider.getSigner();
       console.log('Signer obtained:', signer); // Debug log
 
-      const factoryContractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS;
+      const factoryContractAddress = process.env.NEXT_PUBLIC_BASE_SEPOLIA_CONTRACT_ADDRESS;
       if (!factoryContractAddress) {
         throw new Error('Factory contract address not found in environment variables');
       }

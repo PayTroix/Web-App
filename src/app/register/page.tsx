@@ -133,7 +133,7 @@ function RegisterPage() {
         organization_address: `${formData.get('address1')}, ${formData.get('address2')}, ${formData.get('state')}, ${formData.get('country')}`
       };
 
-      const contractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS as string;
+      const contractAddress = process.env.NEXT_PUBLIC_BASE_SEPOLIA_CONTRACT_ADDRESS as string;
       if (!ethers.isAddress(contractAddress)) {
         throw new Error('Invalid contract address');
       }

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAppKit, useAppKitAccount, useAppKitNetwork, useDisconnect } from '@reown/appkit/react';
 import { displayAddress } from '@/utils';
 import { ChevronDown } from 'lucide-react';
-import { mainnet, sepolia, lisk, liskSepolia, base, baseSepolia } from '@reown/appkit/networks';
+import { base, baseSepolia } from '@reown/appkit/networks';
 import { removeToken } from '@/utils/token';
 
 type WalletButtonProps = {
@@ -21,7 +21,7 @@ const WalletButton: React.FC<WalletButtonProps> = ({ className = '' }) => {
   const networkRef = useRef<HTMLDivElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
 
-  const chains = [mainnet, sepolia, lisk, liskSepolia, base, baseSepolia];
+  const chains = [base, baseSepolia];
 
   // Close dropdowns when clicking outside
   useEffect(() => {

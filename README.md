@@ -20,23 +20,16 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Stable Tokens on Lisk
+## Supported Networks
 
-The following stable tokens are available on the Lisk network for testing:
+This dApp supports Base (mainnet) and Base Sepolia (testnet) only.
 
-- USDT Contract Address: `0x31AA893438e58085d41cFF318fcE786f39CAEF14`
-- USDC Contract Address: `0x31250c888eC36953aFfecE6DA6bF4e73af71f827`
+Environment variables used in the frontend:
 
-### How to Get Test Tokens
-
-You can claim test tokens for development and testing purposes:
-
-1. Visit the Lisk Explorer
-2. Connect your wallet
-3. Navigate to the respective token contract addresses above
-4. Use the faucet functionality to claim test tokens
-
-Note: These tokens are for testing purposes only and have no real value.
+- NEXT_PUBLIC_PROJECT_ID
+- NEXT_PUBLIC_BASE_SEPOLIA_CONTRACT_ADDRESS
+- NEXT_PUBLIC_USDC_ADDRESS
+- NEXT_PUBLIC_USDT_ADDRESS
 
 ## Learn More
 

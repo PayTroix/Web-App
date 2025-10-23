@@ -12,14 +12,14 @@ import { batchDisburseSalaryAtomic, disburseSalaryAtomic } from '@/services/payR
 import { useWalletRedirect } from '@/hooks/useWalletRedirect';
 import { useRouter } from 'next/navigation';
 
-// Update the Employee interface to match backend status types
+
 interface Employee {
   id: number;
   name: string;
   avatar: string;
   date: string;
   salary: string;
-  status: 'Completed' | 'Pending' | 'Failed';  // Match backend status options
+  status: 'Completed' | 'Pending' | 'Failed';
 }
 
 interface Recipient {
@@ -35,23 +35,23 @@ interface RecipientProfiles {
   recipients: Recipient[];
 }
 
-// interface Payroll {
-//   id: number;
-//   recipient: string;
-//   date: string;
-//   amount: number;
-//   status: 'completed' | 'pending' | 'failed';
-//   batch_reference?: string;
-// }
 
-// Add CSS transitions
+
+
+
+
+
+
+
+
+
 const transitionClasses = {
   card: "transition-all duration-300 ease-in-out hover:border-blue-500/20",
   button: "transition-all duration-300 ease-in-out hover:bg-blue-700",
   input: "transition-all duration-200 ease-in-out focus:border-blue-500/50",
 };
 
-// Add constants for supported tokens and months
+
 const SUPPORTED_TOKENS = [
   { symbol: 'USDT', name: 'Tether USD' },
   { symbol: 'USDC', name: 'USD Coin' }
@@ -62,13 +62,13 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-// Add this utility function at the top of the file with other constants
+
 const formatCurrency = (amount: string | number): string => {
   try {
-    // Convert the amount to a formatted string with 6 decimals
+
     const formattedAmount = ethers.formatUnits(amount.toString(), 6);
 
-    // Format the number with commas and 2 decimal places
+
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -94,51 +94,49 @@ export const PayrollContent = () => {
   const { balances, getTokenBalances } = useTokenBalances();
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [activeEmployees, setActiveEmployees] = useState(0);
-  // const [, setPendingPayments] = useState(0);
+
   const [isDisbursing, setIsDisbursing] = useState(false);
 
-  // Add new state variables
+
   const [selectedToken, setSelectedToken] = useState(SUPPORTED_TOKENS[0].symbol);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
 
-  // Add this near other state declarations
-  // const [payrollHistory, setPayrollHistory] = useState<Payroll[]>([]);
+
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-  // Add this interface near other state declarations
+
   interface PayrollWithRecipient extends Payroll {
     recipientDetails?: RecipientProfile;
   }
 
-  // Add this state
+
   const [payrollWithRecipients, setPayrollWithRecipients] = useState<PayrollWithRecipient[]>([]);
 
-  // Add this state near your other state declarations
+
   const [recipients, setRecipients] = useState<Recipient[]>([]);
 
   const router = useRouter();
 
-  // Track previous address to detect actual changes
+
   const prevAddressRef = useRef<string | undefined>();
 
-  // Handle address changes - redirect to landing page
+
   useEffect(() => {
-    // Skip on initial mount when prevAddressRef.current is undefined
     if (prevAddressRef.current !== undefined && prevAddressRef.current !== address) {
-      // Address actually changed, remove token and redirect
+
       const token = getToken();
       if (token) {
         removeToken();
       }
 
-      // Redirect to landing page
+
       toast.error('Wallet address changed. Redirecting to landing page...');
       router.push('/');
       return;
     }
 
-    // Update the previous address reference
+
     prevAddressRef.current = address;
   }, [address, router]);
 
@@ -159,16 +157,16 @@ export const PayrollContent = () => {
         if (recipientProfiles && recipientProfiles.recipients) {
           const allRecipients = recipientProfiles.recipients;
 
-          // Store the raw recipients data
+
           setRecipients(allRecipients);
 
           setTotalEmployees(allRecipients.length);
 
-          // Filter active employees
+
           const activeCount = allRecipients.filter(r => r.status === 'active').length;
           setActiveEmployees(activeCount);
 
-          // Update employees based on status
+
           const filteredEmployees = allRecipients.slice(0, 5).map((recipient: Recipient) => ({
             id: recipient.id,
             name: recipient.name || 'Unknown',
@@ -204,19 +202,19 @@ export const PayrollContent = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMonthPicker]);
 
-  // Update the renderStatus function to handle all possible states
-  // const renderStatus = (status: string) => {
-  //   switch (status) {
-  //     case 'Completed':
-  //       return <span className="text-green-500">{status}</span>;
-  //     case 'Failed':
-  //       return <span className="text-red-500">{status}</span>;
-  //     case 'Pending':
-  //       return <span className="text-yellow-500">{status}</span>;
-  //     default:
-  //       return <span className="text-gray-400">{status}</span>;
-  //   }
-  // };
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   const handleDisburse = async () => {
     try {
@@ -238,7 +236,7 @@ export const PayrollContent = () => {
 
       setIsDisbursing(true);
 
-      // Get organization profile to get the ID
+
       const orgProfile = await profileService.listOrganizationProfiles(token);
       const organizationId = orgProfile[0]?.id;
 
@@ -248,7 +246,7 @@ export const PayrollContent = () => {
 
       const recipientProfiles = orgProfile[0]?.recipients || [];
 
-      // Update the filtering logic to match backend status
+
       const filteredRecipients = selectedGroup === 'all'
         ? recipientProfiles
         : recipientProfiles.filter(r => {
@@ -262,7 +260,7 @@ export const PayrollContent = () => {
         throw new Error('No recipients found for selected group');
       }
 
-      // Validate recipient data
+
       const invalidRecipients = filteredRecipients.filter(
         r => !r.recipient_ethereum_address || !r.salary || r.salary <= 0
       );
@@ -276,7 +274,7 @@ export const PayrollContent = () => {
       const provider = new ethers.BrowserProvider(walletProvider, chainId);
       const signer = await provider.getSigner();
 
-      const factoryContractAddress = process.env.NEXT_PUBLIC_LISK_CONTRACT_ADDRESS;
+      const factoryContractAddress = process.env.NEXT_PUBLIC_BASE_SEPOLIA_CONTRACT_ADDRESS;
       if (!factoryContractAddress) {
         throw new Error('Factory contract address not configured');
       }
@@ -288,7 +286,7 @@ export const PayrollContent = () => {
         throw new Error('Organization contract address not found');
       }
 
-      // Add this check after getting the contract address:
+
       const contractCode = await provider.getCode(contractAddress);
       if (contractCode === '0x') {
         throw new Error('Organization contract not deployed at address: ' + contractAddress);
@@ -309,32 +307,32 @@ export const PayrollContent = () => {
         signer
       );
 
-      // Add this check before calculating amounts:
-      const usdtDecimals = 6;  //await usdtContract.decimals();
+
+      const usdtDecimals = 6;
       console.log('Token setup:', {
         decimals: usdtDecimals,
         tokenAddress: usdtAddress,
         contractAddress: contractAddress
       });
 
-      // Update the amount parsing to use the correct decimals
+
       const totalNetAmount = filteredRecipients.reduce(
         (sum, r) => sum + (r.salary || 0),
         0
       );
 
-      // Parse with correct decimals
+
       const parsedAmount = ethers.parseUnits(
         totalNetAmount.toString(),
         usdtDecimals
       );
 
-      // Calculate total net amount
+
       const totalGrossAmount = await payrollContract.calculateGrossAmount(
         parsedAmount
       );
 
-      // Check current allowance
+
       const currentAllowance = await usdtContract.allowance(address, contractAddress);
       console.log('Allowance check:', {
         current: ethers.formatUnits(currentAllowance, 6),
@@ -352,7 +350,7 @@ export const PayrollContent = () => {
         console.log('Approval confirmed:', approveReceipt.hash);
       }
 
-      // Check balance
+
       const balance = await usdtContract.balanceOf(address);
       if (balance < totalGrossAmount) {
         throw new Error(
@@ -360,7 +358,7 @@ export const PayrollContent = () => {
         );
       }
 
-      // Prepare recipients data
+
       const recipients = filteredRecipients.map(r => ({
         id: r.id,
         address: r.recipient_ethereum_address,
@@ -375,7 +373,7 @@ export const PayrollContent = () => {
         organizationId
       });
 
-      // Add this logging right before the disbursement attempt:
+
       console.log('Pre-disbursement check:', {
         recipients: filteredRecipients.map(r => ({
           address: r.recipient_ethereum_address,
@@ -414,7 +412,7 @@ export const PayrollContent = () => {
         });
       }
 
-      // Refresh data after successful disbursement
+
       const updatedOrgProfile = await profileService.listOrganizationProfiles(token);
       const updatedRecipients = updatedOrgProfile[0]?.recipients || [];
 
@@ -430,7 +428,7 @@ export const PayrollContent = () => {
         data: error && typeof error === 'object' && 'data' in error ? error.data : undefined
       });
 
-      // Throw a more descriptive error
+
       throw new Error(
         error instanceof Error ? error.message :
           (error && typeof error === 'object' && 'data' in error ? String(error.data) :
@@ -441,7 +439,7 @@ export const PayrollContent = () => {
     }
   };
 
-  // Add this validation function
+
   const validateDisbursement = () => {
     if (!isConnected || !address || !walletProvider) {
       throw new Error('Please connect your wallet first');
@@ -459,30 +457,30 @@ export const PayrollContent = () => {
     return true;
   };
 
-  // Update the handleDisbursement function
+
   const handleDisbursement = async () => {
     try {
-      // Validate before showing any loading state
+
       validateDisbursement();
 
       setIsDisbursing(true);
-      // Show loading toast only after validation passes
+
       const loadingToastId = toast.loading('Processing disbursement...', {
-        duration: Infinity // Keep it until we dismiss it
+        duration: Infinity
       });
 
       try {
         await handleDisburse();
-        // Success: Remove loading toast and show success
+
         toast.dismiss(loadingToastId);
         toast.success('Disbursement completed successfully!');
       } catch (error) {
-        // Failure: Remove loading toast and show error
+
         toast.dismiss(loadingToastId);
-        throw error; // Re-throw to be caught by outer catch
+        throw error;
       }
     } catch (error) {
-      // Handle both validation and disbursement errors
+
       console.error('Disbursement error:', error);
       toast.error(error instanceof Error ? error.message : 'Unknown error occurred');
     } finally {
@@ -490,7 +488,7 @@ export const PayrollContent = () => {
     }
   };
 
-  // Now update the calculateTotalAmount function to use the recipients state
+
   const calculateTotalAmount = () => {
     try {
       if (selectedGroup === 'all') {
@@ -518,19 +516,19 @@ export const PayrollContent = () => {
     }
   };
 
-  // Add this function to filter employees based on selected group
-  // const getFilteredEmployees = () => {
-  //   switch (selectedGroup) {
-  //     case 'all':
-  //       return employees;
-  //     case 'active':
-  //       return employees.filter(emp => emp.status === 'Completed');
-  //     case 'onLeave':
-  //       return employees.filter(emp => emp.status === 'Pending');
-  //     default:
-  //       return employees;
-  //   }
-  // };
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   useEffect(() => {
     const fetchPayrollHistory = async () => {
@@ -579,7 +577,7 @@ export const PayrollContent = () => {
         <div className={`col-span-full md:col-span-3 bg-black rounded-lg p-6 border border-[#2C2C2C] ${transitionClasses.card}`}>
           <div className="flex items-center justify-between mb-8">
             <div className="bg-white/10 p-3 rounded-full transform transition-transform hover:scale-105">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="blue" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                 <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
               </svg>
@@ -643,20 +641,20 @@ export const PayrollContent = () => {
                 : 'text-gray-400'
                 }`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="5" width="20" height="14" rx="2" />
                 <line x1="2" y1="10" x2="22" y2="10" />
               </svg>
               Payment
             </button>
             <button
-              onClick={() => setActiveTab('history')} // Update this from 'salary' to 'history'
+              onClick={() => setActiveTab('history')}
               className={`px-4 py-2 flex items-center gap-2 text-sm font-medium rounded-lg ${activeTab === 'history'
                 ? 'bg-blue-600/10 text-blue-500 border border-blue-500/30'
                 : 'text-gray-400'
                 }`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Payroll History
@@ -731,7 +729,7 @@ export const PayrollContent = () => {
                 <div className="text-gray-400 text-sm">Total amount to be disbursed</div>
                 <div className="flex items-center text-white font-medium">
                   <div className="bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center mr-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </div>
@@ -748,7 +746,7 @@ export const PayrollContent = () => {
               <div className={`border border-gray-800 rounded-lg p-4 ${transitionClasses.card}`}>
                 <div className="flex items-center">
                   <div className="flex items-center justify-center w-8 h-8 bg-teal-500 rounded-md mr-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 2L2 7l10 5 10-5z" />
                     </svg>
                   </div>
@@ -768,87 +766,87 @@ export const PayrollContent = () => {
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className={`border border-gray-800 rounded-lg p-4 ${transitionClasses.card}`}>
-                <div className="text-white mb-2">Payment Month</div>
-                <div className="relative month-picker-container">
-                  <div
-                    onClick={() => setShowMonthPicker(!showMonthPicker)}
-                    className={`
-                      flex items-center justify-between
-                      bg-transparent text-gray-400 cursor-pointer
-                      py-2 px-3 rounded-md border border-gray-800
-                      ${transitionClasses.input}
-                    `}
+            <div className={`border border-gray-800 rounded-lg p-4 ${transitionClasses.card}`}>
+              <div className="text-white mb-2">Payment Month</div>
+              <div className="relative month-picker-container">
+                <div
+                  onClick={() => setShowMonthPicker(!showMonthPicker)}
+                  className={`
+                    flex items-center justify-between
+                    bg-transparent text-gray-400 cursor-pointer
+                    py-2 px-3 rounded-md border border-gray-800
+                    ${transitionClasses.input}
+                  `}
+                >
+                  <span>{paymentMonth || 'Select month and year'}</span>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${showMonthPicker ? 'transform rotate-180' : ''}`}
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
                   >
-                    <span>{paymentMonth || 'Select month and year'}</span>
-                    <svg
-                      className={`w-4 h-4 transition-transform ${showMonthPicker ? 'transform rotate-180' : ''}`}
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                  </div>
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
 
-                  {showMonthPicker && (
-                    <div className="absolute z-50 mt-2 w-full bg-gray-900 rounded-lg shadow-lg border border-gray-800">
-                      <div className="p-4">
-                        {/* Year selector */}
-                        <div className="flex items-center justify-between mb-4">
+                {showMonthPicker && (
+                  <div className="absolute z-50 mt-2 w-full bg-gray-900 rounded-lg shadow-lg border border-gray-800">
+                    <div className="p-4">
+                      {/* Year selector */}
+                      <div className="flex items-center justify-between mb-4">
+                        <button
+                          className="p-1 hover:bg-gray-800 rounded"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedYear(selectedYear - 1);
+                          }}
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M15 18l-6-6 6-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                        <span className="text-white">{selectedYear}</span>
+                        <button
+                          className="p-1 hover:bg-gray-800 rounded"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedYear(selectedYear + 1);
+                          }}
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M9 18l6-6-6-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* Months grid */}
+                      <div className="grid grid-cols-3 gap-2">
+                        {MONTHS.map((month) => (
                           <button
-                            className="p-1 hover:bg-gray-800 rounded"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedYear(selectedYear - 1);
+                            key={month}
+                            className={`
+                              p-2 text-sm rounded-md transition-colors
+                              ${paymentMonth === `${month} ${selectedYear}`
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-400 hover:bg-gray-800'
+                              }
+                            `}
+                            onClick={() => {
+                              setPaymentMonth(`${month} ${selectedYear}`);
+                              setShowMonthPicker(false);
                             }}
                           >
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <path d="M15 18l-6-6 6-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
+                            {month}
                           </button>
-                          <span className="text-white">{selectedYear}</span>
-                          <button
-                            className="p-1 hover:bg-gray-800 rounded"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedYear(selectedYear + 1);
-                            }}
-                          >
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <path d="M9 18l6-6-6-6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </button>
-                        </div>
-
-                        {/* Months grid */}
-                        <div className="grid grid-cols-3 gap-2">
-                          {MONTHS.map((month) => (
-                            <button
-                              key={month}
-                              className={`
-                                p-2 text-sm rounded-md transition-colors
-                                ${paymentMonth === `${month} ${selectedYear}`
-                                  ? 'bg-blue-600 text-white'
-                                  : 'text-gray-400 hover:bg-gray-800'
-                                }
-                              `}
-                              onClick={() => {
-                                setPaymentMonth(`${month} ${selectedYear}`);
-                                setShowMonthPicker(false);
-                              }}
-                            >
-                              {month}
-                            </button>
-                          ))}
-                        </div>
+                        ))}
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -871,7 +869,7 @@ export const PayrollContent = () => {
                   </>
                 ) : (
                   <>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                     Disburse

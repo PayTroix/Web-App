@@ -2,7 +2,7 @@
 
 import { createAppKit } from "@reown/appkit/react";
 import { EthersAdapter } from "@reown/appkit-adapter-ethers";
-import { mainnet, sepolia, lisk, liskSepolia, base, baseSepolia } from "@reown/appkit/networks";
+import { base, baseSepolia } from "@reown/appkit/networks";
 import { ReactNode } from "react";
 
 export const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
@@ -22,8 +22,8 @@ const metadata = {
 createAppKit({
   adapters: [new EthersAdapter()],
   projectId,
-  networks: [mainnet, sepolia, lisk, liskSepolia, base, baseSepolia],
-  defaultNetwork: liskSepolia,
+  networks: [base, baseSepolia],
+  defaultNetwork: baseSepolia,
   metadata: metadata,
   features: {
     email: true,

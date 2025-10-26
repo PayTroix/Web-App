@@ -1,18 +1,18 @@
 import { useState } from 'react';
-import { useAppKitAccount, useAppKitProvider, useAppKitNetwork, type Provider } from '@reown/appkit/react';
-import { ethers } from 'ethers';
+import { useAccount, useSignMessage } from 'wagmi';
 import { toast } from 'react-hot-toast';
 import { web3AuthService } from '@/services/api';
 import { storeToken, getToken, isTokenExpired } from '@/utils/token';
 
 export const useAuth = () => {
     const [isAuthenticating, setIsAuthenticating] = useState(false);
-    const { address } = useAppKitAccount();
-    const { chainId } = useAppKitNetwork();
-    const { walletProvider } = useAppKitProvider<Provider>('eip155');
+    const { address } = useAccount();
+    const { signMessageAsync } = useSignMessage();
 
     const authenticate = async (): Promise<boolean> => {
-        if (!address || !walletProvider) {
+        console.log('Authenticate called - address:', address);
+
+        if (!address) {
             toast.error('Please connect your wallet first');
             return false;
         }
@@ -30,11 +30,18 @@ export const useAuth = () => {
             }
 
             // Get nonce and sign message
+            console.log('Getting nonce for address:', address);
             const { nonce } = await web3AuthService.getNonce(address);
             const message = `I'm signing my one-time nonce: ${nonce}`;
-            const provider = new ethers.BrowserProvider(walletProvider, chainId);
-            const signer = await provider.getSigner();
-            const signature = await signer.signMessage(message);
+
+            console.log('Requesting signature...');
+            // Sign message using Wagmi's useSignMessage hook
+            // This automatically handles Smart Wallet signatures correctly
+            const signature = await signMessageAsync({
+                message,
+            });
+
+            console.log('Signature received:', signature);
 
             // Login and store token
             const authResponse = await web3AuthService.login({

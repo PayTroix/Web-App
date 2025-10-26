@@ -1,19 +1,18 @@
 import useTokenBalances from '@/hooks/useBalance';
-import { useAppKitAccount, useAppKitProvider, type Provider } from '@reown/appkit/react';
+import { useAccount } from 'wagmi';
 import React, { useEffect } from 'react';
 
 const WalletBalance = () => {
-  const { address, isConnected } = useAppKitAccount();
-  const { walletProvider } = useAppKitProvider<Provider>('eip155');
+  const { address, isConnected } = useAccount();
 
   const { balances, getTokenBalances } = useTokenBalances();
   const balance = balances.loading ? '...' : balances.USDT || balances.USDC || '0';
 
   useEffect(() => {
-    if (isConnected && address && walletProvider) {
-      getTokenBalances(address, walletProvider);
+    if (isConnected && address) {
+      getTokenBalances(address);
     }
-  }, [isConnected, address, walletProvider, getTokenBalances]);
+  }, [isConnected, address, getTokenBalances]);
 
   return (
     <div className="bg-black border border-[#2C2C2C] rounded-lg p-4 md:p-6 

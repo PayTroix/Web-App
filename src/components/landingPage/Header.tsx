@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import WalletButton from '../WalletButton';
 import Link from 'next/link';
-import { useAppKitAccount } from '@reown/appkit/react';
+import { useAccount } from 'wagmi';
 import { useUserValidation } from '@/hooks/useUserValidation';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
@@ -22,13 +22,13 @@ const Header = ({ onShowRoles }: HeaderProps) => {
   const [isInitializing, setIsInitializing] = useState(true);
   const [hasToken, setHasToken] = useState<boolean>(false);
   const [buttonText, setButtonText] = useState('Sign In');
-  const { address } = useAppKitAccount();
+  const { address } = useAccount();
   const { isLoading } = useUserValidation();
   const { authenticate, isAuthenticating } = useAuth();
   const router = useRouter();
-  
+
   // Track previous address to detect actual changes
-  const prevAddressRef = useRef<string | undefined>();
+  const prevAddressRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -42,36 +42,44 @@ const Header = ({ onShowRoles }: HeaderProps) => {
   const handleSignIn = async () => {
     if (isAuthenticating) return;
 
+    console.log('handleSignIn called - address:', address, 'isAuthenticating:', isAuthenticating);
+
     if (!address) {
       toast.error('Please connect your wallet first');
       return;
     }
 
-    const loadingToast = toast.loading('Checking user status...');
+    const loadingToast = toast.loading('Authenticating...');
 
     try {
-      // First verify if address exists
-      const verifyResponse = await web3AuthService.verifyAddress(address);
-      console.log("VERIFY RESPONSE: ", verifyResponse)
-      if (!verifyResponse.exists) {
-        toast.error('Address not registered', { id: loadingToast });
-        router.push('/register');
-        return;
-      }
-
-      // Check if we need to authenticate
+      // FIRST: Authenticate (sign message) to prove wallet ownership
       const token = getToken();
       const needsAuthentication = !token || isTokenExpired();
+      console.log('Needs authentication?', needsAuthentication);
 
       if (needsAuthentication) {
+        console.log('Calling authenticate (will request signature)...');
         const isAuthenticated = await authenticate();
+        console.log('Authentication result:', isAuthenticated);
         if (!isAuthenticated) {
           toast.error('Authentication failed', { id: loadingToast });
           return;
         }
       }
 
-      // Get fresh token after authentication
+      // SECOND: After authentication, verify if address exists in database
+      toast.loading('Checking user status...', { id: loadingToast });
+      console.log('Verifying address in database...');
+      const verifyResponse = await web3AuthService.verifyAddress(address);
+      console.log("VERIFY RESPONSE: ", verifyResponse)
+
+      if (!verifyResponse.exists) {
+        toast.error('Address not registered', { id: loadingToast });
+        router.push('/register');
+        return;
+      }
+
+      // THIRD: Get fresh token and check profiles
       const currentToken = getToken();
       if (!currentToken) {
         toast.error('Authentication token missing', { id: loadingToast });
@@ -143,7 +151,7 @@ const Header = ({ onShowRoles }: HeaderProps) => {
         setHasToken(false);
       }
     }
-    
+
     // Update the previous address reference
     prevAddressRef.current = address;
   }, [address]);

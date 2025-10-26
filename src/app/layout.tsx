@@ -1,47 +1,20 @@
-// 'use client'
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
+import "@coinbase/onchainkit/styles.css"
 import "./globals.css"
 import { Toaster } from "react-hot-toast";
-// import NProgress from 'nprogress';
 import 'nprogress/nprogress.css';
-// import { usePathname, useSearchParams } from 'next/navigation';
-// import { useEffect } from 'react';
-
-// Configure NProgress
-// NProgress.configure({
-//   minimum: 0.3,
-//   easing: 'ease',
-//   speed: 500,
-//   showSpinner: false
-// });
-
-// function NavigationEvents() {
-//   const pathname = usePathname();
-//   const searchParams = useSearchParams();
-
-//   useEffect(() => {
-//     NProgress.start();
-//     NProgress.done();
-//   }, [pathname, searchParams]);
-
-//   return null;
-// }
+import { Providers } from '@/providers'
 
 const inter = Inter({ subsets: ["latin"] })
 
-//Appkit
-import { AppKit } from '@/context/Appkit'
-
-
-const metadata: Metadata = {
+export const metadata: Metadata = {
   title: "PayTroix - Web3 Payroll Solution",
   description: "Payroll Reinvented for Web3 - Instant, Secure, and Borderless",
 }
 
-// Added async so await in appkit intergration doesnt throw error
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
@@ -50,7 +23,8 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AppKit>{children}
+        <Providers>
+          {children}
           <Toaster
             position="top-right"
             reverseOrder={false}
@@ -63,7 +37,7 @@ export default async function RootLayout({
               },
             }}
           />
-        </AppKit>
+        </Providers>
       </body>
     </html>
   )

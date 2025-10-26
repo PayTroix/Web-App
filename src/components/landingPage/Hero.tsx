@@ -1,13 +1,13 @@
 'use client';
 import Header from './Header';
 import { useRouter } from 'next/navigation';
-import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider, type Provider } from "@reown/appkit/react";
+import { useAccount } from 'wagmi';
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { profileService, web3AuthService } from '../../services/api';
 import Link from 'next/link';
 import { getToken, isTokenExpired, removeToken, storeToken } from '@/utils/token';
-import { ethers } from 'ethers';
+import { useAuth } from '@/hooks/useAuth';
 
 type AuthResponse = {
   access: string;
@@ -38,14 +38,12 @@ interface HeroSectionProps {
 
 export default function HeroSection({ onShowRoles }: HeroSectionProps) {
   const router = useRouter();
-  const { address, isConnected } = useAppKitAccount();
+  const { address, isConnected } = useAccount();
   const [isCheckingUser, setIsCheckingUser] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const { chainId } = useAppKitNetworkCore();
-  const { walletProvider } = useAppKitProvider<Provider>('eip155');
-  
+
   // Track previous address to detect actual changes
-  const prevAddressRef = useRef<string | undefined>();
+  const prevAddressRef = useRef<string | undefined>(undefined);
 
   // Clean up token only when address actually changes (not on component mount)
   useEffect(() => {
@@ -57,10 +55,13 @@ export default function HeroSection({ onShowRoles }: HeroSectionProps) {
         removeToken();
       }
     }
-    
+
     // Update the previous address reference
     prevAddressRef.current = address;
   }, [address]);
+
+  // Use the authentication hook instead of inline authentication
+  const { authenticate: authenticateWithHook } = useAuth();
 
   const authenticate = async (): Promise<boolean> => {
     if (!isConnected || !address) {
@@ -71,20 +72,8 @@ export default function HeroSection({ onShowRoles }: HeroSectionProps) {
     setIsAuthenticating(true);
 
     try {
-      const { nonce } = await web3AuthService.getNonce(address);
-      const message = `I'm signing my one-time nonce: ${nonce}`;
-      const provider = new ethers.BrowserProvider(walletProvider, chainId);
-      const signer = await provider.getSigner();
-      const signature = await signer.signMessage(message);
-
-      const authData = {
-        address: address,
-        signature: signature,
-      };
-
-      const authResponse: AuthResponse = await web3AuthService.login(authData);
-      storeToken(authResponse.access);
-      return true;
+      const success = await authenticateWithHook();
+      return success;
     } catch (error: unknown) {
       console.error('Authentication error:', error);
 

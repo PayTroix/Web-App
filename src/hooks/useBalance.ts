@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
-import { ethers } from 'ethers';
-import { type Provider } from '@reown/appkit/react';
+import { formatUnits, isAddress, type Address } from 'viem';
+import { usePublicClient } from 'wagmi';
 
 const ERC20_ABI = [
   {
@@ -12,7 +12,7 @@ const ERC20_ABI = [
     stateMutability: "view",
     type: "function",
   },
-];
+] as const;
 
 // Improved token address validation with better error handling
 const getTokenAddresses = () => {
@@ -29,19 +29,19 @@ const getTokenAddresses = () => {
   // Log helpful debugging information
   if (!addresses.USDT) {
     console.warn('NEXT_PUBLIC_USDT_ADDRESS is not defined in environment variables');
-  } else if (!ethers.isAddress(addresses.USDT)) {
+  } else if (!isAddress(addresses.USDT)) {
     console.warn(`Invalid USDT address: ${addresses.USDT}`);
   }
 
   if (!addresses.USDC) {
     console.warn('NEXT_PUBLIC_USDC_ADDRESS is not defined in environment variables');
-  } else if (!ethers.isAddress(addresses.USDC)) {
+  } else if (!isAddress(addresses.USDC)) {
     console.warn(`Invalid USDC address: ${addresses.USDC}`);
   }
 
   return {
-    USDT: addresses.USDT && ethers.isAddress(addresses.USDT) ? addresses.USDT : null,
-    USDC: addresses.USDC && ethers.isAddress(addresses.USDC) ? addresses.USDC : null,
+    USDT: addresses.USDT && isAddress(addresses.USDT) ? addresses.USDT as Address : null,
+    USDC: addresses.USDC && isAddress(addresses.USDC) ? addresses.USDC as Address : null,
   };
 };
 
@@ -53,6 +53,7 @@ interface TokenBalance {
 }
 
 const useTokenBalances = () => {
+  const publicClient = usePublicClient();
   const [balances, setBalances] = useState<TokenBalance>({
     USDT: '0',
     USDC: '0',
@@ -68,7 +69,12 @@ const useTokenBalances = () => {
     }
   }, []);
 
-  const getTokenBalances = useCallback(async (walletAddress: string, provider: Provider) => {
+  const getTokenBalances = useCallback(async (walletAddress: Address) => {
+    if (!publicClient) {
+      console.warn('Public client not available');
+      return;
+    }
+
     try {
       setBalances(prev => ({ ...prev, loading: true, error: null }));
 
@@ -82,12 +88,10 @@ const useTokenBalances = () => {
         throw new Error(`Token addresses not configured: ${missingAddresses.join(', ')}`);
       }
 
-      const ethersProvider = new ethers.BrowserProvider(provider);
-
       // Get all available token balances
       const results = await Promise.allSettled([
-        fetchTokenBalance(addresses.USDT, walletAddress, ethersProvider),
-        fetchTokenBalance(addresses.USDC, walletAddress, ethersProvider),
+        fetchTokenBalance(addresses.USDT!, walletAddress, publicClient),
+        fetchTokenBalance(addresses.USDC!, walletAddress, publicClient),
       ]);
 
       const usdtResult = results[0];
@@ -107,19 +111,24 @@ const useTokenBalances = () => {
         error: error instanceof Error ? error.message : 'Failed to fetch token balances',
       }));
     }
-  }, []);
+  }, [publicClient]);
 
   const fetchTokenBalance = async (
-    tokenAddress: string | null,
-    walletAddress: string,
-    provider: ethers.BrowserProvider
+    tokenAddress: Address,
+    walletAddress: Address,
+    client: ReturnType<typeof usePublicClient>
   ): Promise<string> => {
-    if (!tokenAddress) return '0';
+    if (!client) return '0';
 
     try {
-      const contract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
-      const balance = await contract.balanceOf(walletAddress);
-      return ethers.formatUnits(balance, 6);
+      const balance = await client.readContract({
+        address: tokenAddress,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [walletAddress],
+      }) as bigint;
+
+      return formatUnits(balance, 6);
     } catch (err) {
       console.error(`Error fetching balance for token ${tokenAddress}:`, err);
       return '0';

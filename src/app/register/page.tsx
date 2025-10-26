@@ -4,23 +4,25 @@ import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider, type Provider } from '@reown/appkit/react';
-import { ethers } from 'ethers';
+import { useAccount, useWalletClient, useChainId } from 'wagmi';
+import { BrowserProvider } from 'ethers';
 import { profileService, web3AuthService } from '@/services/api';
 import toast from 'react-hot-toast';
 import abi from '@/services/abi.json';
 import WalletButton from '@/components/WalletButton';
 import { storeToken, removeToken, getToken } from '../../utils/token';
+import { useAuth } from '@/hooks/useAuth';
 
 function RegisterPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { address, isConnected } = useAppKitAccount();
-  const { chainId } = useAppKitNetworkCore();
-  const { walletProvider } = useAppKitProvider<Provider>('eip155');
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const { data: walletClient } = useWalletClient();
+  const { authenticate } = useAuth();
 
   // Track previous address to detect actual changes
-  const prevAddressRef = useRef<string | undefined>();
+  const prevAddressRef = useRef<string | undefined>(undefined);
 
   // Handle address changes - redirect to landing page
   useEffect(() => {
@@ -102,8 +104,7 @@ function RegisterPage() {
     const loadingToast = toast.loading('Creating organization...');
 
     try {
-      // 1. Verify address and get nonce
-      const { nonce } = await web3AuthService.getNonce(address);
+      // 1. Verify address
       const isVerified = await web3AuthService.verifyAddress(address);
 
       if (!isVerified.exists) {
@@ -111,20 +112,33 @@ function RegisterPage() {
         throw new Error('Address not verified');
       }
 
-      // 2. Sign message for authentication
-      const message = `I'm signing my one-time nonce: ${nonce}`;
-      const provider = new ethers.BrowserProvider(walletProvider, chainId);
-      const signer = await provider.getSigner();
-      const signature = await signer.signMessage(message);
+      // 2. Authenticate with wallet signature
+      const isAuthenticated = await authenticate();
+      if (!isAuthenticated) {
+        toast.error('Authentication failed', { id: loadingToast });
+        return;
+      }
 
-      // 3. Authenticate with backend
-      const authData = {
-        "address": address,
-        "signature": signature,
-      };
-      const authResponse = await web3AuthService.login(authData);
-      const token = authResponse.access;
-      storeToken(token);
+      const token = getToken();
+      if (!token) {
+        toast.error('Authentication token missing', { id: loadingToast });
+        return;
+      }
+
+      // Check if walletClient is available
+      if (!walletClient) {
+        toast.error('Wallet not ready. Please try again.', { id: loadingToast });
+        return;
+      }
+
+      // Verify network - must be Base Sepolia (84532)
+      const network = await walletClient.getChainId();
+      console.log('Current network chainId:', network);
+
+      if (network !== 84532) { // Base Sepolia
+        toast.error('Please switch to Base Sepolia network', { id: loadingToast });
+        return;
+      }
 
       // Prepare organization data
       const orgData = {
@@ -134,17 +148,34 @@ function RegisterPage() {
       };
 
       const contractAddress = process.env.NEXT_PUBLIC_BASE_SEPOLIA_CONTRACT_ADDRESS as string;
-      if (!ethers.isAddress(contractAddress)) {
+      console.log('Contract address:', contractAddress);
+
+      if (!contractAddress) {
+        throw new Error('Contract address not configured');
+      }
+
+      // Create ethers provider and signer from walletClient
+      const provider = new BrowserProvider(walletClient);
+      const signer = await provider.getSigner();
+
+      // Import Contract from ethers
+      const { Contract, isAddress } = await import('ethers');
+
+      if (!isAddress(contractAddress)) {
         throw new Error('Invalid contract address');
       }
 
-      const payrollContract = new ethers.Contract(contractAddress, abi, signer);
-
-      // Add code to verify the contract exists
+      // Verify the contract exists
       const code = await provider.getCode(contractAddress);
+      console.log('Contract code exists:', code !== '0x');
+
       if (code === '0x') {
+        toast.error('Smart contract not found at the specified address. Please check the contract address.', { id: loadingToast });
         throw new Error('No contract found at the specified address');
       }
+
+      const payrollContract = new Contract(contractAddress, abi, signer);
+      console.log('Contract initialized successfully');
 
       // Start atomic transaction flow
       let backendOrgId: string | null = null;

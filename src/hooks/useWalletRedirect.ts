@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAppKitAccount } from '@reown/appkit/react';
+import { useAccount } from 'wagmi';
 import { getToken, removeToken } from '@/utils/token';
 
 export const useWalletRedirect = () => {
-    const { address, isConnected } = useAppKitAccount();
+    const { address, isConnected } = useAccount();
     const router = useRouter();
     const [hasInitialized, setHasInitialized] = useState(false);
     const previousAddress = useRef<string | undefined>(address);

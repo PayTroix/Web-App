@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useAppKitAccount } from '@reown/appkit/react';
+import { useAccount } from 'wagmi';
 import { web3AuthService } from '@/services/api';
 import { VerifyAddressResponse } from '@/components/landingPage/Hero';
 
 export const useUserValidation = () => {
     const [userExists, setUserExists] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const { address } = useAppKitAccount();
+    const { address } = useAccount();
 
     useEffect(() => {
         const checkUser = async () => {

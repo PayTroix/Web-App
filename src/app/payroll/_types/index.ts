@@ -6,49 +6,49 @@
 import type { Payroll, RecipientProfile } from '@/services/api';
 
 export interface Employee {
-  id: number;
-  name: string;
-  avatar: string;
-  date: string;
-  salary: string;
-  status: 'Completed' | 'Pending' | 'Failed';
+    id: number;
+    name: string;
+    avatar: string;
+    date: string;
+    salary: string;
+    status: 'Completed' | 'Pending' | 'Failed';
 }
 
 export interface Recipient {
-  id: number;
-  name: string;
-  status: string;
-  salary?: number;
-  wallet_address?: string;
-  position?: string;
-  recipient_ethereum_address?: string;
+    id: number;
+    name: string;
+    status: string;
+    salary?: number;
+    wallet_address?: string;
+    position?: string;
+    recipient_ethereum_address?: string;
 }
 
 export interface RecipientProfiles {
-  recipients: Recipient[];
+    recipients: Recipient[];
 }
 
 export interface PayrollWithRecipient extends Payroll {
-  recipientDetails?: RecipientProfile;
+    recipientDetails?: RecipientProfile;
 }
 
 export interface PayrollStats {
-  totalEmployees: number;
-  activeEmployees: number;
-  totalAmount: number;
+    totalEmployees: number;
+    activeEmployees: number;
+    totalAmount: number;
 }
 
 export interface DisbursementRecipient {
-  id: number;
-  address: string;
-  amount: bigint;
+    id: number;
+    address: string;
+    amount: bigint;
 }
 
 export interface DisbursementParams {
-  recipients: DisbursementRecipient[];
-  tokenAddress: string;
-  paymentMonth: string;
-  organizationId: number;
+    recipients: DisbursementRecipient[];
+    tokenAddress: string;
+    paymentMonth: string;
+    organizationId: number;
 }
 
 export type RecipientGroup = 'all' | 'active' | 'onLeave';

@@ -4,25 +4,25 @@
  */
 
 export interface RecentActivity {
-  id: string;
-  type: string;
-  message: string;
-  time: string;
+    id: string;
+    type: string;
+    message: string;
+    time: string;
 }
 
 export interface DashboardData {
-  totalEmployees: number;
-  activeEmployees: number;
-  performancePercentage: number;
-  pendingRequests: number;
-  pendingPayrollVolume: number;
-  recentActivities: RecentActivity[];
+    totalEmployees: number;
+    activeEmployees: number;
+    performancePercentage: number;
+    pendingRequests: number;
+    pendingPayrollVolume: number;
+    recentActivities: RecentActivity[];
 }
 
 export interface DashboardStats {
-  totalEmployees: number;
-  activeEmployees: number;
-  performancePercentage: number;
-  pendingRequests: number;
-  pendingPayrollVolume: number;
+    totalEmployees: number;
+    activeEmployees: number;
+    performancePercentage: number;
+    pendingRequests: number;
+    pendingPayrollVolume: number;
 }

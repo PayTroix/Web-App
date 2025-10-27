@@ -13,79 +13,79 @@ import { showToast } from '@/utils/toast';
 import type { OrganizationData, OrganizationFormData } from '../_types';
 
 export function useOrganizationSettings() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [organizationData, setOrganizationData] = useState<OrganizationData | null>(null);
-  const [formData, setFormData] = useState<OrganizationFormData>({});
-  const { isConnected } = useAccount();
+    const [isLoading, setIsLoading] = useState(true);
+    const [organizationData, setOrganizationData] = useState<OrganizationData | null>(null);
+    const [formData, setFormData] = useState<OrganizationFormData>({});
+    const { isConnected } = useAccount();
 
-  // Fetch organization data
-  const fetchOrganizationData = async () => {
-    try {
-      const token = getToken();
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
+    // Fetch organization data
+    const fetchOrganizationData = async () => {
+        try {
+            const token = getToken();
+            if (!token) {
+                setIsLoading(false);
+                return;
+            }
 
-      const profiles = await profileService.listOrganizationProfiles(token);
-      if (profiles.length > 0) {
-        setOrganizationData(profiles[0]);
-        setFormData(profiles[0]);
-      }
-    } catch (error) {
-      showToast.error('Failed to fetch organization data');
-      console.error('Error fetching organization data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+            const profiles = await profileService.listOrganizationProfiles(token);
+            if (profiles.length > 0) {
+                setOrganizationData(profiles[0]);
+                setFormData(profiles[0]);
+            }
+        } catch (error) {
+            showToast.error('Failed to fetch organization data');
+            console.error('Error fetching organization data:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-  useEffect(() => {
-    fetchOrganizationData();
-  }, [isConnected]);
+    useEffect(() => {
+        fetchOrganizationData();
+    }, [isConnected]);
 
-  // Update form field
-  const updateFormField = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+    // Update form field
+    const updateFormField = (name: string, value: string) => {
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    };
 
-  // Reset form to original data
-  const resetForm = () => {
-    if (organizationData) {
-      setFormData(organizationData);
-    }
-  };
+    // Reset form to original data
+    const resetForm = () => {
+        if (organizationData) {
+            setFormData(organizationData);
+        }
+    };
 
-  // Submit organization updates
-  const submitUpdate = async () => {
-    if (!organizationData?.id) return;
+    // Submit organization updates
+    const submitUpdate = async () => {
+        if (!organizationData?.id) return;
 
-    showToast.loading('Updating organization data...');
-    try {
-      const token = getToken();
-      if (!token) throw new Error('No token found');
+        showToast.loading('Updating organization data...');
+        try {
+            const token = getToken();
+            if (!token) throw new Error('No token found');
 
-      await profileService.partialUpdateOrganizationProfile(
-        organizationData.id,
+            await profileService.partialUpdateOrganizationProfile(
+                organizationData.id,
+                formData,
+                token
+            );
+
+            showToast.success('Organization data updated successfully');
+            await fetchOrganizationData(); // Refresh data
+        } catch (error) {
+            showToast.error('Failed to update organization data');
+            console.error('Error updating organization:', error);
+            throw error;
+        }
+    };
+
+    return {
+        isLoading,
+        organizationData,
         formData,
-        token
-      );
-
-      showToast.success('Organization data updated successfully');
-      await fetchOrganizationData(); // Refresh data
-    } catch (error) {
-      showToast.error('Failed to update organization data');
-      console.error('Error updating organization:', error);
-      throw error;
-    }
-  };
-
-  return {
-    isLoading,
-    organizationData,
-    formData,
-    updateFormField,
-    resetForm,
-    submitUpdate,
-  };
+        updateFormField,
+        resetForm,
+        submitUpdate,
+    };
 }

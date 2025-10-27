@@ -3,14 +3,14 @@
  */
 
 export interface OrganizationData {
-  id: number;
-  name: string;
-  email: string;
-  organization_address: string;
-  organization_phone?: string;
-  website?: string;
-  created_at: string;
-  updated_at: string;
+    id: number;
+    name: string;
+    email: string;
+    organization_address: string;
+    organization_phone?: string;
+    website?: string;
+    created_at: string;
+    updated_at: string;
 }
 
-export interface OrganizationFormData extends Partial<OrganizationData> {}
+export interface OrganizationFormData extends Partial<OrganizationData> { }

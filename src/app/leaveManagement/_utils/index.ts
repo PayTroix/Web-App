@@ -3,7 +3,7 @@
  */
 
 import { differenceInDays } from 'date-fns';
-import type { LeaveRequest } from '../_types';
+import type { LeaveRequest } from '@/services/api';
 
 /**
  * Calculate the number of days between start and end date

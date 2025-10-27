@@ -12,7 +12,8 @@ import { useAccount } from 'wagmi';
 import { leaveRequestService } from '@/services/api';
 import { getToken, removeToken } from '@/utils/token';
 import { isCurrentlyOnLeave } from '../_utils';
-import type { LeaveRequest, LeaveStats } from '../_types';
+import type { LeaveRequest } from '@/services/api';
+import type { LeaveStats } from '../_types';
 
 export function useLeaveManagementData() {
     const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);

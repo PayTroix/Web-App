@@ -7,7 +7,7 @@
 
 import Image from 'next/image';
 import { calculateLeaveDays, getStatusColorClass, capitalizeFirst } from '../../_utils';
-import type { LeaveRequest } from '../../_types';
+import type { LeaveRequest } from '@/services/api';
 
 interface LeaveRequestsTableProps {
     leaveRequests: LeaveRequest[];

@@ -11,27 +11,27 @@ import { useRecipientDashboard } from '../_hooks';
 import { RecipientSummaryCards, PaymentHistoryTable } from './widgets';
 
 export function RecipientDashboardContent() {
-  useWalletRedirect();
+    useWalletRedirect();
 
-  const { loading, initialLoad, dashboardData, completedPayrolls } = useRecipientDashboard();
+    const { loading, initialLoad, dashboardData, completedPayrolls } = useRecipientDashboard();
 
-  if (initialLoad || loading) {
+    if (initialLoad || loading) {
+        return (
+            <div className="min-h-screen bg-black">
+                <LoadingSpinner />
+            </div>
+        );
+    }
+
     return (
-      <div className="min-h-screen bg-black">
-        <LoadingSpinner />
-      </div>
+        <main className="min-h-screen bg-black text-white p-4 md:p-6">
+            <div className="max-w-6xl mx-auto space-y-6">
+                {/* Top Cards */}
+                <RecipientSummaryCards dashboardData={dashboardData} />
+
+                {/* Payment History Section */}
+                <PaymentHistoryTable completedPayrolls={completedPayrolls} />
+            </div>
+        </main>
     );
-  }
-
-  return (
-    <main className="min-h-screen bg-black text-white p-4 md:p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Top Cards */}
-        <RecipientSummaryCards dashboardData={dashboardData} />
-
-        {/* Payment History Section */}
-        <PaymentHistoryTable completedPayrolls={completedPayrolls} />
-      </div>
-    </main>
-  );
 }

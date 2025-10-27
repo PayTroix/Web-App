@@ -2,12 +2,12 @@
 
 import React from 'react';
 import Layout from '@/components/recipient-components/RecipientSidebar';
-import WalletDashboard from '@/components/recipient-components/RecipientWallet';
+import { WalletContent } from './_components';
 
 function Dashboard() {
   return (
     <Layout>
-        <WalletDashboard />
+      <WalletContent />
     </Layout>
   );
 }

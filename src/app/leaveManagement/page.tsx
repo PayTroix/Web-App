@@ -2,12 +2,12 @@
 
 import React from 'react';
 import Layout from '@/components/Sidebar';
-import LeaveManagement from '@/components/dashboard/LeaveManagement';
+import { LeaveManagementContent } from './_components';
 
 function Employees() {
   return (
     <Layout>
-     <LeaveManagement/>
+      <LeaveManagementContent />
     </Layout>
   );
 }

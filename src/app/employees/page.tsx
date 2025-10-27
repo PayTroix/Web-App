@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Layout from '@/components/Sidebar';
-import { EmployeesContent } from '@/components/dashboard/employeesContent';
+import { EmployeesContent } from './_components/EmployeesContent';
 
 function Employees() {
   return (

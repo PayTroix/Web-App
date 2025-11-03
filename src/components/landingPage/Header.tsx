@@ -19,9 +19,9 @@ interface HeaderProps {
 
 const Header = ({ onShowRoles }: HeaderProps) => {
   const [, setIsScrolled] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
-  const [hasToken, setHasToken] = useState<boolean>(false);
-  const [buttonText, setButtonText] = useState('Sign In');
+  const [_isInitializing, setIsInitializing] = useState(true);
+  const [_hasToken, setHasToken] = useState<boolean>(false);
+  const [buttonText] = useState('Sign In');
   const { address } = useAppKitAccount();
   const { isLoading } = useUserValidation();
   const { authenticate, isAuthenticating } = useAuth();
@@ -101,6 +101,7 @@ const Header = ({ onShowRoles }: HeaderProps) => {
           }
         } catch (orgError) {
           // Ignore organization profile errors - user might be recipient only
+          console.log('Organization profile check failed (expected for recipient-only users):', orgError);
         }
 
         // If we get here, no profiles were found

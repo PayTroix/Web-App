@@ -164,6 +164,7 @@ export default function HeroSection({ onShowRoles }: HeroSectionProps) {
           }
         } catch (orgError) {
           // Ignore organization profile errors - user might be recipient only
+          console.log('Organization profile check failed (expected for recipient-only users):', orgError);
         }
 
         // If we get here, no profiles were found

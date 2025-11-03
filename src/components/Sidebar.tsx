@@ -163,6 +163,7 @@ export const Sidebar: FC = () => {
       router.prefetch(item.href);
     });
     router.prefetch(settingsItem.href);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const renderNavItem = (item: NavItem) => {

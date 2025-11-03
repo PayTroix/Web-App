@@ -11,7 +11,7 @@ import RolesModal from "@/components/RolesModal";
 import Header from "@/components/landingPage/Header";
 
 export default function Home() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [_isAuthenticated, setIsAuthenticated] = useState(false);
   const [showRolesModal, setShowRolesModal] = useState(false);
   const [userType, setUserType] = useState<'recipient' | 'organization' | 'both' | null>(null);
 

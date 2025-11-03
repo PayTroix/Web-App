@@ -68,7 +68,7 @@ interface PendingPayrollVolumeProps {
   volume: number;
 }
 
-export const PendingPayrollVolume: React.FC<PendingPayrollVolumeProps> = ({ volume = 0 }) => {
+export const PendingPayrollVolume: React.FC<PendingPayrollVolumeProps> = ({ volume: _volume = 0 }) => {
   const [summary, setSummary] = useState<PayrollSummary | null>(null);
 
   useEffect(() => {

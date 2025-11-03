@@ -86,7 +86,7 @@ export const PayrollContent = () => {
   const [activeTab, setActiveTab] = useState('payment');
   const [selectedGroup, setSelectedGroup] = useState('active');
   const [paymentMonth, setPaymentMonth] = useState('');
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [_employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const { address, isConnected } = useAppKitAccount();
   const { chainId } = useAppKitNetwork();

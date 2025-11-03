@@ -35,7 +35,7 @@ const inter = Inter({ subsets: ["latin"] })
 import { AppKit } from '@/context/Appkit'
 
 
-const metadata: Metadata = {
+export const metadata: Metadata = {
   title: "PayTroix - Web3 Payroll Solution",
   description: "Payroll Reinvented for Web3 - Instant, Secure, and Borderless",
 }

@@ -71,7 +71,7 @@ const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
   return null;
 };
 
-const CustomizedDot = ({ cx, cy, index, isActive }: { cx: number; cy: number; index: number; isActive: boolean }) => {
+const CustomizedDot = ({ cx, cy, index: _index, isActive }: { cx: number; cy: number; index: number; isActive: boolean }) => {
   return (
     <circle
       cx={cx}
